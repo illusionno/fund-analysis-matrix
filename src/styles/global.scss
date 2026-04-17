@@ -1,0 +1,276 @@
+@use "./variables" as *;
+
+.fm-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  transition:
+    background 0.35s ease,
+    color 0.35s ease;
+  /* 壳内数字等宽对齐（金融看板） */
+  font-variant-numeric: tabular-nums;
+
+  &--light {
+    background:
+      radial-gradient(
+        ellipse 95% 58% at 50% -12%,
+        $fm-light-page-accent-blue,
+        transparent
+      ),
+      radial-gradient(
+        ellipse 52% 42% at 100% 18%,
+        $fm-light-page-accent-violet,
+        transparent
+      ),
+      linear-gradient(180deg, #fafbfd 0%, $fm-light-page 42%, #eef2f9 100%);
+    color: #0f172a;
+  }
+
+  &--dark {
+    background:
+      radial-gradient(
+        ellipse 90% 60% at 50% -15%,
+        rgba(37, 99, 235, 0.14),
+        transparent
+      ),
+      radial-gradient(
+        ellipse 50% 45% at 100% 20%,
+        rgba(99, 102, 241, 0.1),
+        transparent
+      ),
+      #0b1120;
+    color: rgba(255, 255, 255, 0.88);
+  }
+}
+
+/* 顶栏：亮色 / 暗色毛玻璃（暗色加强模糊与饱和度） */
+.fm-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.fm-shell--light .fm-header {
+  background: rgba(255, 255, 255, 0.78);
+  -webkit-backdrop-filter: blur(14px) saturate(1.05);
+  backdrop-filter: blur(14px) saturate(1.05);
+  border-bottom-color: rgba(15, 23, 42, 0.08);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.fm-shell--dark .fm-header {
+  background: rgba(25, 42, 82, 0.42);
+  -webkit-backdrop-filter: blur(18px) saturate(1.18);
+  backdrop-filter: blur(18px) saturate(1.18);
+  border-bottom-color: rgba(148, 163, 184, 0.12);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.fm-particle-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.fm-logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  position: relative; /* 必须有定位，以便内部伪元素绝对定位 */
+  overflow: hidden;   /* 确保底部发光不会超出圆角外框 */
+  
+  /* 1. 外框（容器）深色背景和底部发光 */
+  /* 可选：给外框加个非常微弱的高光描边，增加立体感 */
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  
+  /* 2. 使用 ::after 专门用来渲染渐变色高亮的图标 */
+  &::after {
+    content: "";
+    position: absolute;
+    /* 图标大小根据你原有的 background-size 调整，居中 */
+    width: 60px;
+    height: 60px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    /* 图标本身的明亮渐变色 (青绿到亮蓝) */
+    
+    background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%) !important;
+    -webkit-text-fill-color: transparent;
+    /* 将你原本在 background 里的 SVG 转移到 mask-image 中 */
+    -webkit-mask-image: url("https://img.alicdn.com/imgextra/i1/O1CN01rP8vnc1PypVwjsoua_!!6000000001910-55-tps-84-84.svg");
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    -webkit-mask-size: 60px;
+    
+    mask-image: url("https://img.alicdn.com/imgextra/i1/O1CN01rP8vnc1PypVwjsoua_!!6000000001910-55-tps-84-84.svg");
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size: 60px;
+  }
+}
+.fm-main {
+  flex: 1;
+  width: 100%;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 1rem 1rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+
+  @media (min-width: 768px) {
+    padding: 1.5rem 1.5rem 3.5rem;
+    gap: 2.5rem;
+  }
+}
+
+.fm-footer {
+  text-align: center;
+  padding: 0.75rem 1rem 1.25rem;
+  font-size: 12px;
+  opacity: 0.55;
+}
+
+.fm-section-title {
+  margin-top: 12px;
+  padding-top: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.55;
+}
+
+/* 行情快照：小卡片网格 */
+.fm-quote-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+
+.fm-quote-snapshot-card {
+  font-variant-numeric: tabular-nums;
+}
+@mixin gradient-border($color) {
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      $color 50%,
+      transparent 100%
+    );
+  }
+}
+.fm-shell--dark .fm-card {
+  @include gradient-border($fm-blue);
+  border: 1px solid $fm-blue-border !important;
+  padding: 12px;
+  border-radius: 12px;
+}
+.fm-shell--dark .fm-review {
+  @include gradient-border($fm-purple);
+  border: 1px solid $fm-purple-border !important;
+  padding: 12px;
+  border-radius: 12px;
+}
+
+/* 亮色：与暗色同结构的顶边渐变 + 浅色描边，略抬升阴影 */
+.fm-shell--light .fm-card {
+  @include gradient-border($fm-blue);
+  border: 1px solid $fm-blue-border-light !important;
+  padding: 12px;
+  border-radius: 12px;
+}
+
+.fm-shell--light .fm-review {
+  @include gradient-border($fm-purple);
+  border: 1px solid $fm-purple-border-light !important;
+  padding: 12px;
+  border-radius: 12px;
+}
+@mixin fm-btn($color1, $color2) {
+  color: #000000 !important;
+  background-image: linear-gradient(135deg, $color1 30%, $color2);
+  transition: all 0.3s ease;
+  &:hover {
+    background-image: linear-gradient(160deg, $color1 30%, $color2);
+  }
+}
+.fm-shell--dark .fm-primary-btn {
+  @include fm-btn(#00f9e5, #2d60ff);
+}
+.fm-shell--dark .fm-clear-btn {
+  @include fm-btn(#fffefe86, #b9b9b9);
+}
+.fm-shell--light .fm-primary-btn {
+  @include fm-btn(#00f9e5, #2d60ff);
+  border: 1px solid $fm-border-btn !important;
+}
+.fm-shell--light .fm-clear-btn {
+  @include fm-btn(#fffefe86, #b9b9b9);
+  border: 1px solid $fm-border-btn !important;
+}
+.fm-review-btn {
+  @include fm-btn(#926bfc, #fbbbdb);
+}
+.fm-review-list-item {
+  border: 1px solid rgba(148,163,184,0.42);
+  border-bottom-color: rgba(148,163,184,0.42) !important;
+  border-radius: 16px;
+  padding: 16px !important;
+  margin-bottom:16px !important;
+}
+.fm-review-list-item:last-child {
+  border-bottom-color: rgba(148,163,184,0.42) !important;
+}
+.fm-review-tag{
+  padding: 4px 8px;
+  display: inline-block;
+  font-size: 12px;
+  background:$fm-green;
+  margin-top: 8px;
+  border-radius: 12px;
+}
+.fm-review-text{
+font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+}
+html {
+  font-family: "Inter", "PingFang SC", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  transition:
+    background-color 0.35s ease,
+    color 0.35s ease;
+}
+
+:root[data-theme="light"] body {
+  background-color: $fm-light-page;
+  color: #0f172a;
+}
+
+:root[data-theme="dark"] body {
+  background-color: #0b1120;
+}
+
+#root {
+  min-height: 100vh;
+}

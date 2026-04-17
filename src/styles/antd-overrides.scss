@@ -1,0 +1,98 @@
+
+@use './variables' as *;
+
+/* Ant Design 高级感微调：与金融复盘主题统一 */
+.ant-app {
+  min-height: 100vh;
+}
+
+
+.fm-shell--dark .ant-card {
+  background: rgba(17, 27, 49, 0.502) !important;
+//   -webkit-backdrop-filter: blur(14px) saturate(1.12);
+//   backdrop-filter: blur(14px) saturate(1.12);
+//   box-shadow: 0 4px 28px rgba(0, 0, 0, 0.22);
+
+}
+
+.fm-shell--light .ant-card {
+  background: var(--fm-bg-elevated) !important;
+  // border-color:  !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+:root[data-theme='light'] .ant-modal .ant-modal-content {
+  background: #ffffff !important;
+  box-shadow:
+    0 4px 24px rgba(15, 23, 42, 0.08),
+    0 12px 48px rgba(37, 99, 235, 0.06);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+
+:root[data-theme='light'] .ant-modal .ant-modal-header,
+:root[data-theme='light'] .ant-modal .ant-modal-footer {
+  background: transparent !important;
+}
+
+:root[data-theme='light'] .ant-modal .ant-modal-header {
+  border-bottom-color: rgba(15, 23, 42, 0.08);
+}
+
+:root[data-theme='light'] .ant-modal .ant-modal-footer {
+  border-top-color: rgba(15, 23, 42, 0.08);
+}
+.ant-card-head-title{
+    font-size: 16px !important;
+    padding:12px 0!important;
+}
+.fm-pct-up {
+  color: $fm-up !important;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.fm-pct-down {
+  color: $fm-down !important;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.fm-pct-muted {
+  opacity: 0.45;
+}
+
+.ant-modal {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Modal 挂在 body，用 data-theme 与暗色壳一致 */
+:root[data-theme='dark'] .ant-modal .ant-modal-content {
+  background: rgba(17, 24, 39, 0.72) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+  backdrop-filter: blur(18px) saturate(1.1);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  overflow: hidden;
+}
+
+:root[data-theme='dark'] .ant-modal .ant-modal-header,
+:root[data-theme='dark'] .ant-modal .ant-modal-footer {
+  background: transparent !important;
+}
+
+:root[data-theme='dark'] .ant-modal .ant-modal-header {
+  border-bottom-color: rgba(148, 163, 184, 0.12);
+}
+
+:root[data-theme='dark'] .ant-modal .ant-modal-footer {
+  border-top-color: rgba(148, 163, 184, 0.12);
+}
+
+.ant-modal .echarts-for-react {
+  border-radius: 8px;
+}
+
+.ant-segmented {
+  font-weight: 500;
+}

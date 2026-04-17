@@ -1,0 +1,32 @@
+$fm-up: #cf1322;
+$fm-down: #389e0d;
+$fm-blue: rgb(3, 137, 255);
+$fm-blue-border: #264892d2;
+$fm-purple: #7c3aed;
+$fm-purple-border: #5a2a97;
+$fm-border-btn: #e0e0e0;
+$fm-green: #1b4709;
+$fm-green-text: #389e0d;
+
+/* 亮色主题：与暗色同一套色相，提高亮度、降低对比 */
+$fm-light-page: #f3f6fc;
+$fm-light-page-accent-blue: rgba(37, 99, 235, 0.09);
+$fm-light-page-accent-violet: rgba(99, 102, 241, 0.07);
+$fm-blue-border-light: rgba(114, 157, 251, 0.292);
+$fm-purple-border-light: rgba(111, 71, 181, 0.26);
+// 边框按钮
+:root[data-theme='light'] {
+  --fm-bg-page: #{$fm-light-page};
+  --fm-bg-elevated: #ffffff81;
+  --fm-border-subtle: rgba(15, 23, 42, 0.1);
+  --fm-blue: 3, 137, 255;
+  --fm-purple: 124, 58, 237;
+}
+
+:root[data-theme='dark'] {
+  --fm-bg-page: #0b1120;
+  --fm-bg-elevated: rgba(24, 32, 54, 0.85);
+  --fm-border-subtle: rgba(148, 163, 184, 0.12);
+  --fm-blue: 3, 137, 255;
+  --fm-purple: 124, 58, 237;
+}
