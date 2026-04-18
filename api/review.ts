@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import type { QuoteSnapshot } from './lib/quoteCore'
-import { REVIEW_DISCLAIMER, runAiReview } from './lib/reviewCore'
+import { REVIEW_DISCLAIMER, runAiReview } from './lib/reviewCore.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')

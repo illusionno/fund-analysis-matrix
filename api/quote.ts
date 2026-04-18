@@ -4,7 +4,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 // 引入了核心业务逻辑函数 resolveQuotes 以及入参类型 QuoteItemInput。
 // 作用：将“HTTP 层处理”与“业务逻辑”分离。这个文件只管接收请求、返回响应；真正的抓取、计算都在 quoteCore.ts 里。
-import { type QuoteItemInput, resolveQuotes } from './lib/quoteCore'
+import { type QuoteItemInput, resolveQuotes } from './lib/quoteCore.js'
 
 // 这是 Vercel Serverless Function 的标准写法。每次有请求打到 /api/quote 时，Vercel 就会唤起（或复用）一个 Node 实例来执行这个 handler 函数。
 export default async function handler(req: VercelRequest, res: VercelResponse) {
