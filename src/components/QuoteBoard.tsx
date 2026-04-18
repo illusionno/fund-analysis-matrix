@@ -1,5 +1,5 @@
 import { ReloadOutlined } from '@ant-design/icons'
-import { Alert, Button, Card, Empty, Space, Spin, Tag, Typography } from 'antd'
+import { Alert, Button, Card, Empty, Skeleton, Space, Tag, Typography } from 'antd'
 import { useCallback, useState, useEffect } from 'react'
 import { LineChartOutlined } from '@ant-design/icons'
 import { fetchQuotes } from '../services/quoteApi'
@@ -98,6 +98,22 @@ function QuoteSnapshotCard({
   )
 }
 
+function QuoteSnapshotSkeletonCard({ index }: { index: number }) {
+  return (
+    <Card
+      size="small"
+      className="fm-quote-snapshot-card"
+      styles={{ body: { padding: '12px 14px' } }}
+    >
+      <Skeleton
+        active
+        title={{ width: index % 2 === 0 ? '58%' : '46%' }}
+        paragraph={{ rows: 4, width: ['34%', '82%', '68%', '52%'] }}
+      />
+    </Card>
+  )
+}
+
 interface QuoteBoardProps {
   quotes: QuoteSnapshot[]
   onQuotesChange: (q: QuoteSnapshot[]) => void
@@ -185,21 +201,23 @@ export function QuoteBoard({ quotes, onQuotesChange }: QuoteBoardProps) {
           <Alert type="error" showIcon message={error} style={{ marginBottom: 12 }} />
         ) : null}
 
-        <Spin spinning={loading && items.length > 0} tip="拉取行情中…">
-          {items.length === 0 ? (
-            <Typography.Text type="secondary">请先添加自选后再刷新行情。</Typography.Text>
-          ) : quotes.length === 0 && !loading ? (
-            <Empty description='点击右上角「刷新行情」拉取最新数据' />
-          ) : loading && quotes.length === 0 ? (
-            <Typography.Text type="secondary">加载中…</Typography.Text>
-          ) : (
-            <div className="fm-quote-grid">
-              {quotes.map((q) => (
-                <QuoteSnapshotCard key={q.id} quote={q} onOpenTrend={setTrendQuote} />
-              ))}
-            </div>
-          )}
-        </Spin>
+        {loading ? (
+          <div className="fm-quote-grid">
+            {Array.from({ length: Math.max(items.length, 2) }).map((_, idx) => (
+              <QuoteSnapshotSkeletonCard key={`quote-skeleton-${idx}`} index={idx} />
+            ))}
+          </div>
+        ) : items.length === 0 ? (
+          <Typography.Text type="secondary">请先添加自选后再刷新行情。</Typography.Text>
+        ) : quotes.length === 0 ? (
+          <Empty description='点击右上角「刷新行情」拉取最新数据' />
+        ) : (
+          <div className="fm-quote-grid">
+            {quotes.map((q) => (
+              <QuoteSnapshotCard key={q.id} quote={q} onOpenTrend={setTrendQuote} />
+            ))}
+          </div>
+        )}
       </Card>
     </>
   )

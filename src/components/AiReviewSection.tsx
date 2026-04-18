@@ -1,6 +1,6 @@
 import { LinkOutlined, ThunderboltOutlined } from "@ant-design/icons";
-import { Alert, Button, Card, List, Space, Spin, Tag, Typography } from "antd";
-import { useState } from "react";
+import { Alert, Button, Card, List, Skeleton, Space, Tag, Typography } from "antd";
+import { useEffect, useRef, useState } from "react";
 import { fetchAiReview } from "../services/reviewApi";
 import type { QuoteSnapshot } from "../types/quote";
 
@@ -121,6 +121,7 @@ export function AiReviewSection({ quotes }: AiReviewSectionProps) {
   const [error, setError] = useState<string | null>(null);
   const [disclaimer, setDisclaimer] = useState<string | null>(null);
   const [result, setResult] = useState<unknown>(null);
+  const lastAutoRunKeyRef = useRef<string>("");
 
   const run = async () => {
     if (quotes.length === 0) return;
@@ -143,6 +144,24 @@ export function AiReviewSection({ quotes }: AiReviewSectionProps) {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const reviewable = quotes.filter(
+      (q) => q.kind === "fund" || q.kind === "stock" || q.kind === "gold",
+    );
+    if (reviewable.length === 0) return;
+
+    const nextKey = reviewable
+      .map(
+        (q) =>
+          `${q.kind}:${q.code}:${q.price}:${q.changePctDay}:${q.changePctWeek ?? "null"}:${q.asOf ?? ""}`,
+      )
+      .join("|");
+    if (!nextKey || nextKey === lastAutoRunKeyRef.current) return;
+
+    lastAutoRunKeyRef.current = nextKey;
+    void run();
+  }, [quotes]);
 
   const items = parseItems(result);
   const summary = summaryText(result);
@@ -168,21 +187,28 @@ export function AiReviewSection({ quotes }: AiReviewSectionProps) {
           disabled={quotes.length === 0}
           onClick={() => void run()}
         >
-          生成复盘
+         {loading ? "正在分析中，请耐心等待噢~" : "生成复盘"}
         </Button>
       }
     >
-      <Spin spinning={loading} tip="分析中…">
-        {error ? (
+      {loading ? (
+        <Skeleton
+          active
+          paragraph={{ rows: 8 }}
+          title={{ width: "42%" }}
+        />
+      ) : (
+        <>
+          {error ? (
           <Alert
             type="warning"
             showIcon
             message={error}
             style={{ marginBottom: 12 }}
           />
-        ) : null}
+          ) : null}
 
-        {!loading && summary ? (
+          {summary ? (
           <div style={{ marginBottom: 16 }}>
             <Typography.Paragraph
               style={{
@@ -192,9 +218,9 @@ export function AiReviewSection({ quotes }: AiReviewSectionProps) {
               }}
             >
               {summary}
-            </Typography.Paragraph>
+            </Typography.Paragraph >
             {portfolioTips.length > 0 ? (
-              <div>
+              <div style={{ marginTop: 8 }}>
                 <div className="fm-review-tag">投资小建议</div>
                 <ul
                   style={{
@@ -214,8 +240,8 @@ export function AiReviewSection({ quotes }: AiReviewSectionProps) {
 
             <SourcesBlock sources={globalSources} />
           </div>
-        ) : null}
-        {!loading && !summary && portfolioTips.length > 0 ? (
+          ) : null}
+          {!summary && portfolioTips.length > 0 ? (
           <div style={{ marginBottom: 16 }}>
             <Alert
               type="info"
@@ -239,17 +265,16 @@ export function AiReviewSection({ quotes }: AiReviewSectionProps) {
             />
             <SourcesBlock sources={globalSources} />
           </div>
-        ) : null}
-        {!loading &&
-        !summary &&
-        portfolioTips.length === 0 &&
-        globalSources.length > 0 ? (
+          ) : null}
+          {!summary &&
+          portfolioTips.length === 0 &&
+          globalSources.length > 0 ? (
           <div style={{ marginBottom: 16 }}>
             <SourcesBlock sources={globalSources} />
           </div>
-        ) : null}
+          ) : null}
 
-        {!loading && items.length > 0 ? (
+          {items.length > 0 ? (
           <List
             itemLayout="vertical"
             dataSource={items}
@@ -289,8 +314,8 @@ export function AiReviewSection({ quotes }: AiReviewSectionProps) {
                   </Typography.Paragraph>
                   {investTip ? (
                     <div>
-                      <div className="fm-review-tag">投资小建议</div>
-                      <div className="fm-review-text mt-8">{investTip}</div>
+                      <div className="fm-review-tag" style={{ marginBottom: 3 }}>投资小建议</div>
+                      <div className="fm-review-text">{investTip}</div>
                     </div>
                   ) : null}
                   <SourcesBlock sources={sources} />
@@ -298,9 +323,9 @@ export function AiReviewSection({ quotes }: AiReviewSectionProps) {
               );
             }}
           />
-        ) : null}
+          ) : null}
 
-        {!loading && result && items.length === 0 && !summary ? (
+          {result && items.length === 0 && !summary ? (
           <pre
             style={{
               maxHeight: 260,
@@ -313,17 +338,18 @@ export function AiReviewSection({ quotes }: AiReviewSectionProps) {
           >
             {JSON.stringify(result, null, 2)}
           </pre>
-        ) : null}
+          ) : null}
 
-        {disclaimer ? (
+          {disclaimer ? (
           <Typography.Paragraph
             type="secondary"
             style={{ marginTop: 16, marginBottom: 0, fontSize: 12 }}
           >
             {disclaimer}
           </Typography.Paragraph>
-        ) : null}
-      </Spin>
+          ) : null}
+        </>
+      )}
     </Card>
   );
 }

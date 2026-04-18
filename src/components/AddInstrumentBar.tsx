@@ -84,20 +84,20 @@ export function AddInstrumentBar() {
             快捷
           </Typography.Text>
           <Button size="small" onClick={() => addFund("005827")}>
-            +005827
+            005827
           </Button>
           <Button size="small" onClick={() => addFund("012544")}>
-            +012544
+            012544
           </Button>
           <Button
             size="small"
             icon={<StockOutlined />}
             onClick={() => addStock("600519")}
           >
-            +600519
+            600519
           </Button>
           <Button size="small" onClick={() => addGold()}>
-            +黄金
+            黄金
           </Button>
         </Space>
       </Space>

@@ -1,6 +1,6 @@
 import type { EChartsOption } from 'echarts'
 import ReactECharts from 'echarts-for-react'
-import { Alert, Modal, Segmented, Spin, Typography } from 'antd'
+import { Alert, Modal, Segmented, Skeleton, Typography } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import { fetchKline } from '../services/klineApi'
 import type { KlinePeriod } from '../types/kline'
@@ -165,20 +165,24 @@ export function TrendChartModal({ quote, onClose }: TrendChartModalProps) {
               block
             />
           </div>
-          <Spin spinning={loading} tip="加载走势…">
-            {err ? (
-              <Alert type="error" showIcon message={err} />
-            ) : points.length === 0 && !loading ? (
-              <Typography.Text type="secondary">暂无数据</Typography.Text>
-            ) : (
-              <ReactECharts
-                option={option}
-                style={{ height: 380, width: '100%' }}
-                opts={{ renderer: 'canvas' }}
-                notMerge
-              />
-            )}
-          </Spin>
+          {loading ? (
+            <Skeleton
+              active
+              paragraph={{ rows: 10 }}
+              title={{ width: '32%' }}
+            />
+          ) : err ? (
+            <Alert type="error" showIcon message={err} />
+          ) : points.length === 0 ? (
+            <Typography.Text type="secondary">暂无数据</Typography.Text>
+          ) : (
+            <ReactECharts
+              option={option}
+              style={{ height: 380, width: '100%' }}
+              opts={{ renderer: 'canvas' }}
+              notMerge
+            />
+          )}
         </>
       ) : null}
     </Modal>

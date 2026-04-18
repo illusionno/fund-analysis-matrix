@@ -23,7 +23,10 @@ type State = {
 export const useWatchlist = create<State>()(
   persist(
     (set, get) => ({
-      items: [],
+      items: [
+        { id: 'fund-005827', kind: 'fund', code: '005827' },
+        { id: 'fund-012544', kind: 'fund', code: '012544' },
+      ],
       addFund(code) {
         const c = code.replace(/\D/g, '')
         if (c.length !== 6) return

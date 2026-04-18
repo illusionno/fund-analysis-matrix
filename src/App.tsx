@@ -16,7 +16,8 @@ function readInitialDark(): boolean {
   const s = localStorage.getItem(THEME_KEY);
   if (s === "light") return false;
   if (s === "dark") return true;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  // return window.matchMedia("(prefers-color-scheme: dark)").matches;//默认跟随系统
+  return true;//默认固定暗色主题
 }
 // 粒子背景（亮色减弱对比，避免喧宾夺主）
 function ParticleCanvas({ isDark }: { isDark: boolean }) {
@@ -144,7 +145,7 @@ export default function App() {
               <AiReviewSection quotes={quotes} />
             </main>
             <footer className="fm-footer">
-              FundMatrix · 基金股票黄金每日复盘 · 数据仅供参考
+              Fund Analysis Matrix · 基金股票黄金每日复盘 · by illusionno（白桃与猫）
             </footer>
           </div>
         </AntdApp>

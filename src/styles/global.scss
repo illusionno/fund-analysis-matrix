@@ -243,9 +243,13 @@
   display: inline-block;
   font-size: 12px;
   background:$fm-green;
-  margin-top: 8px;
   border-radius: 12px;
 }
+.fm-shell--light .fm-review-tag{
+  background: $fm-green-text;
+  color: #ffffff;
+}
+
 .fm-review-text{
 font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
 }
