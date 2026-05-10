@@ -60,29 +60,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const stream = body.stream === true;
     const deepThink = body.deepThink === true;
     
-    // 流式请求
+    // 流式请求（必须在首次 res.write 之前设置 status，否则 Node/Vercel 会抛错 → FUNCTION_INVOCATION_FAILED）
     if (stream) {
       res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
       res.setHeader("Cache-Control", "no-cache, no-transform");
       res.setHeader("X-Accel-Buffering", "no");
+      res.status(200);
+
       const writeLine = (obj: Record<string, unknown>) => {
         res.write(`${JSON.stringify(obj)}\n`);
       };
 
-      await streamAiChatToWriter(
-        messages,
-        {
-          apiKey: key,
-          base: process.env.OPENAI_API_BASE,
-          model: process.env.OPENAI_MODEL,
-          quotes,
-          deepThink,
-        },
-        writeLine,
-      );
-
-      writeLine({ done: true, disclaimer: CHAT_DISCLAIMER });
-      res.status(200).end();
+      try {
+        await streamAiChatToWriter(
+          messages,
+          {
+            apiKey: key,
+            base: process.env.OPENAI_API_BASE,
+            model: process.env.OPENAI_MODEL,
+            quotes,
+            deepThink,
+          },
+          writeLine,
+        );
+        writeLine({ done: true, disclaimer: CHAT_DISCLAIMER });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        writeLine({ err: msg });
+        writeLine({ done: true, disclaimer: CHAT_DISCLAIMER });
+      }
+      res.end();
       return;
     }
 
@@ -105,6 +112,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+    if (res.headersSent) {
+      try {
+        res.end();
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
     res.status(500).json({ error: msg, disclaimer: CHAT_DISCLAIMER });
   }
 }

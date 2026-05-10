@@ -209,20 +209,29 @@ export async function streamAiChatToWriter(
   const base = opts.base?.replace(/\/$/, "") ?? "https://api.openai.com/v1";
   const model = opts.model ?? "gpt-4o-mini";
 
-  const openaiRes = await fetch(`${base}/chat/completions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${opts.apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      temperature: opts.deepThink ? 0.45 : 0.55,
-      max_tokens: opts.deepThink ? 3072 : 2048,
-      stream: true,
-      messages: built.messages,
-    }),
-  });
+  let openaiRes: Response;
+  try {
+    openaiRes = await fetch(`${base}/chat/completions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${opts.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        temperature: opts.deepThink ? 0.45 : 0.55,
+        max_tokens: opts.deepThink ? 3072 : 2048,
+        stream: true,
+        messages: built.messages,
+      }),
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    writeJsonLine({
+      err: `上游模型连接失败（请检查 OPENAI_API_BASE 是否可从部署环境访问）: ${msg}`,
+    });
+    return;
+  }
 
   if (!openaiRes.ok) {
     const t = await openaiRes.text();
