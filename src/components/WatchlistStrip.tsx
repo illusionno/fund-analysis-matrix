@@ -1,7 +1,8 @@
 import { CloseOutlined } from '@ant-design/icons'
-import { Empty, Space, Tag, Typography } from 'antd'
+import { Button, Empty, Typography } from 'antd'
 import type { WatchItem } from '../store/watchlistStore'
 import { useWatchlist } from '../store/watchlistStore'
+import type { QuoteSnapshot } from '../types/quote'
 
 function kindLabel(k: WatchItem['kind']) {
   if (k === 'fund') return '基金'
@@ -9,9 +10,14 @@ function kindLabel(k: WatchItem['kind']) {
   return '黄金'
 }
 
-export function WatchlistStrip() {
+interface WatchlistStripProps {
+  quotes?: QuoteSnapshot[]
+}
+
+export function WatchlistStrip({ quotes = [] }: WatchlistStripProps) {
   const items = useWatchlist((s) => s.items)
   const remove = useWatchlist((s) => s.remove)
+  const quoteNameMap = new Map(quotes.map((q) => [q.id, q.name]))
 
   if (items.length === 0) {
     return (
@@ -23,24 +29,39 @@ export function WatchlistStrip() {
   }
 
   return (
-    <Space wrap >
+    <div className="fm-watchlist-grid">
       {items.map((i) => (
-        <Tag
-          key={i.id}
-          closable
-          closeIcon={<CloseOutlined />}
-          onClose={(e) => {
-            e.preventDefault()
-            remove(i.id)
-          }}
-          style={{ padding: '6px 10px', fontSize: 13 }}
-        >
-          <Typography.Text type="secondary" style={{ fontSize: 11, marginRight: 6 }}>
-            {kindLabel(i.kind)}
-          </Typography.Text>
-          <Typography.Text code>{i.kind === 'gold' ? 'XAU' : i.code}</Typography.Text>
-        </Tag>
+        <div key={i.id} className="fm-watchlist-item">
+          <div className="fm-watchlist-item__main">
+            <div className="fm-watchlist-item__meta">
+              <span className={`fm-watchlist-item__kind fm-watchlist-item__kind--${i.kind}`}>
+                {kindLabel(i.kind)}
+              </span>
+              <Typography.Text
+                code
+                className="fm-watchlist-item__code"
+              >
+                {i.kind === 'gold' ? 'XAU' : i.code}
+              </Typography.Text>
+            </div>
+            <Typography.Text
+              strong
+              className="fm-watchlist-item__name"
+              title={quoteNameMap.get(i.id) ?? (i.kind === 'gold' ? '黄金' : '加载中')}
+            >
+              {quoteNameMap.get(i.id) ?? (i.kind === 'gold' ? '黄金' : '加载中')}
+            </Typography.Text>
+          </div>
+          <Button
+            type="text"
+            size="small"
+            className="fm-watchlist-item__remove"
+            aria-label={`删除${quoteNameMap.get(i.id) ?? (i.kind === 'gold' ? '黄金' : '该自选')}`}
+            icon={<CloseOutlined />}
+            onClick={() => remove(i.id)}
+          />
+        </div>
       ))}
-    </Space>
+    </div>
   )
 }

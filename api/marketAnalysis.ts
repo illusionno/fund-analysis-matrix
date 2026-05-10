@@ -1,7 +1,7 @@
+
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import type { MarketIndexSnapshot } from './lib/marketCore'
-import type { QuoteSnapshot } from './lib/quoteCore'
-import { REVIEW_DISCLAIMER, runAiReview } from './lib/reviewCore'
+import { REVIEW_DISCLAIMER, runAiMarketAnalysis } from './lib/reviewCore'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -29,19 +29,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const body = (typeof req.body === 'string' ? JSON.parse(req.body) : req.body) as {
-      quotes?: QuoteSnapshot[]
       marketIndices?: MarketIndexSnapshot[]
     }
-    const quotes = body.quotes ?? []
     const marketIndices = Array.isArray(body.marketIndices) ? body.marketIndices : undefined
-    const hasQuotes = Array.isArray(quotes) && quotes.length > 0
     const hasMarket = Array.isArray(marketIndices) && marketIndices.length > 0
-    if (!hasQuotes && !hasMarket) {
-      res.status(400).json({ error: 'quotes 与 marketIndices 不能同时为空', disclaimer: REVIEW_DISCLAIMER })
+
+    if (!hasMarket) {
+      res.status(400).json({ error: 'marketIndices 不能为空', disclaimer: REVIEW_DISCLAIMER })
       return
     }
 
-    const out = await runAiReview(quotes, marketIndices, {
+    const out = await runAiMarketAnalysis(marketIndices, {
       apiKey: key,
       base: process.env.OPENAI_API_BASE,
       model: process.env.OPENAI_MODEL,

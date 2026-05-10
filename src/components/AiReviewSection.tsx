@@ -1,8 +1,12 @@
 import { LinkOutlined, ThunderboltOutlined } from "@ant-design/icons";
-import { Alert, Button, Card, List, Skeleton, Space, Tag, Typography } from "antd";
-import { useEffect, useRef, useState } from "react";
-import { fetchAiReview } from "../services/reviewApi";
+import { Alert, Button, Card, List, Space, Spin, Tag, Typography, Tabs } from "antd";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { fetchAiReview, fetchAiMarketAnalysis } from "../services/reviewApi";
+import type { MarketIndexSnapshot } from "../types/market";
 import type { QuoteSnapshot } from "../types/quote";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import mdStyles from "./AiChatMarkdown.module.scss";
 
 type ReviewSource = { title?: string; url?: string };
 
@@ -46,6 +50,28 @@ function portfolioTipsList(result: unknown): string[] {
   return raw.filter(
     (x): x is string => typeof x === "string" && x.trim().length > 0,
   );
+}
+
+function marketBriefText(result: unknown): string | null {
+  if (!isRecord(result)) return null;
+  const s = result.marketBrief;
+  return typeof s === "string" && s.trim().length > 0 ? s.trim() : null;
+}
+
+function fallbackMarketBrief(
+  marketIndices: MarketIndexSnapshot[] | undefined,
+): string | null {
+  if (!marketIndices || marketIndices.length === 0) return null;
+  const sorted = [...marketIndices].sort((a, b) => b.changePctDay - a.changePctDay);
+  const leader = sorted[0];
+  const lagger = sorted[sorted.length - 1];
+  const avg =
+    marketIndices.reduce((sum, it) => sum + it.changePctDay, 0) / marketIndices.length;
+  const tone = avg >= 0 ? "偏强" : "偏弱";
+  if (leader.id === lagger.id) {
+    return `今日大盘整体${tone}，${leader.name}${leader.changePctDay >= 0 ? "上涨" : "下跌"}${Math.abs(leader.changePctDay).toFixed(2)}%，结构分化不明显。`;
+  }
+  return `今日大盘整体${tone}，${leader.name}相对领涨、${lagger.name}相对偏弱，市场呈现一定结构分化。`;
 }
 
 function firstBrief(text: string | undefined, max = 72): string {
@@ -112,61 +138,305 @@ function SourcesBlock({ sources }: { sources: ReviewSource[] }) {
   );
 }
 
-interface AiReviewSectionProps {
+type AiReviewSectionProps = {
   quotes: QuoteSnapshot[];
-}
+  marketIndices?: MarketIndexSnapshot[];
+  onMarketBriefChange?: (text: string | null) => void;
+};
 
-export function AiReviewSection({ quotes }: AiReviewSectionProps) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [disclaimer, setDisclaimer] = useState<string | null>(null);
-  const [result, setResult] = useState<unknown>(null);
-  const lastAutoRunKeyRef = useRef<string>("");
+export function AiReviewSection({
+  quotes,
+  marketIndices,
+  onMarketBriefChange,
+}: AiReviewSectionProps) {
+  const [activeTab, setActiveTab] = useState<"market" | "portfolio">("market");
+  
+  // Portfolio Review State
+  const [loadingPortfolio, setLoadingPortfolio] = useState(false);
+  const [errorPortfolio, setErrorPortfolio] = useState<string | null>(null);
+  const [disclaimerPortfolio, setDisclaimerPortfolio] = useState<string | null>(null);
+  const [resultPortfolio, setResultPortfolio] = useState<unknown>(null);
+  const lastAutoRunKeyPortfolioRef = useRef<string>("");
+  
+  // Market Analysis State
+  const [loadingMarket, setLoadingMarket] = useState(false);
+  const [errorMarket, setErrorMarket] = useState<string | null>(null);
+  const [disclaimerMarket, setDisclaimerMarket] = useState<string | null>(null);
+  const [resultMarket, setResultMarket] = useState<string | null>(null);
+  const lastAutoRunKeyMarketRef = useRef<string>("");
 
-  const run = async () => {
-    if (quotes.length === 0) return;
-    setLoading(true);
-    setError(null);
-    setDisclaimer(null);
-    setResult(null);
+  const hasQuotes = quotes.length > 0;
+  const hasMarket = (marketIndices?.length ?? 0) > 0;
+
+  const runPortfolio = useCallback(async () => {
+    if (!hasQuotes && !hasMarket) return;
+    setLoadingPortfolio(true);
+    setErrorPortfolio(null);
+    setDisclaimerPortfolio(null);
+    setResultPortfolio(null);
+    onMarketBriefChange?.(null);
     try {
-      const data = await fetchAiReview(quotes);
+      const data = await fetchAiReview(quotes, marketIndices);
       if (data.error) {
-        setError(data.error);
-        setDisclaimer(data.disclaimer ?? null);
+        setErrorPortfolio(data.error);
+        setDisclaimerPortfolio(data.disclaimer ?? null);
+        onMarketBriefChange?.(null);
         return;
       }
-      setResult(data.result ?? null);
-      setDisclaimer(data.disclaimer ?? null);
+      setResultPortfolio(data.result ?? null);
+      onMarketBriefChange?.(
+        marketBriefText(data.result) ?? fallbackMarketBrief(marketIndices),
+      );
+      setDisclaimerPortfolio(data.disclaimer ?? null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setErrorPortfolio(e instanceof Error ? e.message : String(e));
+      onMarketBriefChange?.(null);
     } finally {
-      setLoading(false);
+      setLoadingPortfolio(false);
     }
-  };
+  }, [hasQuotes, hasMarket, marketIndices, onMarketBriefChange, quotes]);
 
-  useEffect(() => {
-    const reviewable = quotes.filter(
-      (q) => q.kind === "fund" || q.kind === "stock" || q.kind === "gold",
-    );
-    if (reviewable.length === 0) return;
+  const runMarket = useCallback(async () => {
+    if (!hasMarket) return;
+    setLoadingMarket(true);
+    setErrorMarket(null);
+    setDisclaimerMarket(null);
+    setResultMarket(null);
+    try {
+      const data = await fetchAiMarketAnalysis(marketIndices);
+      if (data.error) {
+        setErrorMarket(data.error);
+        setDisclaimerMarket(data.disclaimer ?? null);
+        return;
+      }
+      setResultMarket(typeof data.result === 'string' ? data.result : null);
+      setDisclaimerMarket(data.disclaimer ?? null);
+    } catch (e) {
+      setErrorMarket(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoadingMarket(false);
+    }
+  }, [hasMarket, marketIndices]);
 
-    const nextKey = reviewable
-      .map(
-        (q) =>
-          `${q.kind}:${q.code}:${q.price}:${q.changePctDay}:${q.changePctWeek ?? "null"}:${q.asOf ?? ""}`,
-      )
+  const items = parseItems(resultPortfolio);
+  const summary = summaryText(resultPortfolio);
+  const portfolioTips = portfolioTipsList(resultPortfolio);
+  const globalSources = rootSources(resultPortfolio);
+  
+  const autoRunKeyPortfolio = useMemo(() => {
+    const q = quotes
+      .map((x) => `${x.id}:${x.changePctDay}:${x.changePctWeek ?? "n"}:${x.asOf}`)
       .join("|");
-    if (!nextKey || nextKey === lastAutoRunKeyRef.current) return;
+    const m = (marketIndices ?? [])
+      .map((x) => `${x.id}:${x.changePctDay}:${x.asOf}`)
+      .join("|");
+    return `${q}__${m}`;
+  }, [marketIndices, quotes]);
 
-    lastAutoRunKeyRef.current = nextKey;
-    void run();
-  }, [quotes]);
+  // 当自选列表或大盘数据加载完毕后，自动触发自选复盘的生成
+  useEffect(() => {
+    if (!hasQuotes && !hasMarket) return;
+    if (autoRunKeyPortfolio === lastAutoRunKeyPortfolioRef.current) return;
+    lastAutoRunKeyPortfolioRef.current = autoRunKeyPortfolio;
+    void runPortfolio();
+  }, [autoRunKeyPortfolio, hasQuotes, hasMarket, runPortfolio]);
 
-  const items = parseItems(result);
-  const summary = summaryText(result);
-  const portfolioTips = portfolioTipsList(result);
-  const globalSources = rootSources(result);
+  const autoRunKeyMarket = useMemo(() => {
+    return (marketIndices ?? [])
+      .map((x) => `${x.id}:${x.changePctDay}:${x.asOf}`)
+      .join("|");
+  }, [marketIndices]);
+
+  // 当大盘数据加载完毕后，自动触发大盘分析的生成
+  useEffect(() => {
+    if (!hasMarket) return;
+    if (autoRunKeyMarket === lastAutoRunKeyMarketRef.current) return;
+    lastAutoRunKeyMarketRef.current = autoRunKeyMarket;
+    void runMarket();
+  }, [autoRunKeyMarket, hasMarket, runMarket]);
+
+  const renderPortfolioTab = () => (
+    <Spin spinning={loadingPortfolio} tip="分析中…">
+      {errorPortfolio ? (
+        <Alert
+          type="warning"
+          showIcon
+          message={errorPortfolio}
+          style={{ marginBottom: 12 }}
+        />
+      ) : null}
+
+      {!loadingPortfolio && summary ? (
+        <div className="fm-review-summary">
+          <Typography.Paragraph
+            className="fm-review-summary__text"
+          >
+            {summary}
+          </Typography.Paragraph>
+          {portfolioTips.length > 0 ? (
+            <div>
+              <div className="fm-review-tag">投资小建议</div>
+              <ul
+                style={{
+                  margin: "8px 0 0",
+                  paddingLeft: 18,
+                  marginBottom: 0,
+                }}
+              >
+                {portfolioTips.map((t, i) => (
+                  <li key={i} style={{ marginBottom: 4 }}>
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          <SourcesBlock sources={globalSources} />
+        </div>
+      ) : null}
+      {!loadingPortfolio && !summary && portfolioTips.length > 0 ? (
+        <div style={{ marginBottom: 16 }}>
+          <Alert
+            type="info"
+            showIcon
+            message="组合层面小建议"
+            description={
+              <ul
+                style={{
+                  margin: "8px 0 0",
+                  paddingLeft: 18,
+                  marginBottom: 0,
+                }}
+              >
+                {portfolioTips.map((t, i) => (
+                  <li key={i} style={{ marginBottom: 4 }}>
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            }
+          />
+          <SourcesBlock sources={globalSources} />
+        </div>
+      ) : null}
+      {!loadingPortfolio &&
+      !summary &&
+      portfolioTips.length === 0 &&
+      globalSources.length > 0 ? (
+        <div style={{ marginBottom: 16 }}>
+          <SourcesBlock sources={globalSources} />
+        </div>
+      ) : null}
+
+      {!loadingPortfolio && items.length > 0 ? (
+        <List
+          itemLayout="vertical"
+          dataSource={items}
+          renderItem={(it, idx) => {
+            const { todayDetail, weekDetail, investTip, sources } =
+              itemBriefDetail(it);
+            return (
+              <List.Item
+                key={`${it.code ?? idx}-${it.kind ?? ""}`}
+                className="fm-review-list-item"
+              >
+                <Typography.Title
+                  level={5}
+                  style={{
+                    marginTop: 0,
+                    marginBottom: 12,
+                  }}
+                >
+                  {it.name ?? it.code}{" "}
+                  <Typography.Text type="secondary" code>
+                    {it.kind ?? "—"}
+                  </Typography.Text>
+                </Typography.Title>
+                <Typography.Paragraph style={{ marginBottom: 8 }}>
+                  <Typography.Text type="danger" strong>
+                    今日{" "}
+                  </Typography.Text>
+                  <span className="fm-review-text">{todayDetail}</span>
+                </Typography.Paragraph>
+                <Typography.Paragraph
+                  style={{ marginBottom: investTip ? 12 : 0 }}
+                >
+                  <Typography.Text style={{ color: "#2563eb" }} strong>
+                    一周{" "}
+                  </Typography.Text>
+                  <span className="fm-review-text">{weekDetail}</span>
+                </Typography.Paragraph>
+                {investTip ? (
+                  <div>
+                    <div className="fm-review-tag">
+                      投资小建议
+                    </div>
+                    <div className="fm-review-text mt-8">{investTip}</div>
+                  </div>
+                ) : null}
+                <SourcesBlock sources={sources} />
+              </List.Item>
+            );
+          }}
+        />
+      ) : null}
+
+      {!loadingPortfolio && resultPortfolio && items.length === 0 && !summary ? (
+        <pre
+          style={{
+            maxHeight: 260,
+            overflow: "auto",
+            padding: 12,
+            borderRadius: 8,
+            background: "rgba(15,23,42,0.45)",
+            fontSize: 12,
+          }}
+        >
+          {JSON.stringify(resultPortfolio, null, 2)}
+        </pre>
+      ) : null}
+
+      {disclaimerPortfolio ? (
+        <Typography.Paragraph
+          type="secondary"
+          style={{ marginTop: 16, marginBottom: 0, fontSize: 12 }}
+        >
+          {disclaimerPortfolio}
+        </Typography.Paragraph>
+      ) : null}
+    </Spin>
+  );
+
+  const renderMarketTab = () => (
+    <Spin spinning={loadingMarket} tip="生成大盘分析中…">
+      {errorMarket ? (
+        <Alert
+          type="warning"
+          showIcon
+          message={errorMarket}
+          style={{ marginBottom: 12 }}
+        />
+      ) : null}
+
+      {!loadingMarket && resultMarket ? (
+        <div className={mdStyles.root}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {resultMarket}
+          </ReactMarkdown>
+        </div>
+      ) : null}
+
+      {disclaimerMarket ? (
+        <Typography.Paragraph
+          type="secondary"
+          style={{ marginTop: 16, marginBottom: 0, fontSize: 12 }}
+        >
+          {disclaimerMarket}
+        </Typography.Paragraph>
+      ) : null}
+    </Spin>
+  );
 
   return (
     <Card
@@ -174,182 +444,44 @@ export function AiReviewSection({ quotes }: AiReviewSectionProps) {
       variant="borderless"
       className="fm-review"
       title={
-        <Space>
+        <Space className="fm-card-title-row">
           <ThunderboltOutlined style={{ color: "#7c3aed" }} />
-          <span>AI 复盘</span>
-          <Tag color="purple">今日 + 近一周 · 含投资小建议</Tag>
+          <span className="fm-card-title">AI 复盘</span>
+          <Tag color="purple" className="fm-card-hint-tag">
+            今日 + 近一周 · 含投资小建议
+          </Tag>
         </Space>
       }
       extra={
         <Button
           className="fm-review-btn"
-          loading={loading}
-          disabled={quotes.length === 0}
-          onClick={() => void run()}
+          loading={activeTab === "market" ? loadingMarket : loadingPortfolio}
+          disabled={activeTab === "market" ? !hasMarket : (!hasQuotes && !hasMarket)}
+          onClick={() => {
+            if (activeTab === "market") void runMarket();
+            else void runPortfolio();
+          }}
         >
-         {loading ? "正在分析中，请耐心等待噢~" : "生成复盘"}
+          重新生成
         </Button>
       }
     >
-      {loading ? (
-        <Skeleton
-          active
-          paragraph={{ rows: 8 }}
-          title={{ width: "42%" }}
-        />
-      ) : (
-        <>
-          {error ? (
-          <Alert
-            type="warning"
-            showIcon
-            message={error}
-            style={{ marginBottom: 12 }}
-          />
-          ) : null}
-
-          {summary ? (
-          <div style={{ marginBottom: 16 }}>
-            <Typography.Paragraph
-              style={{
-                marginBottom: globalSources.length ? 8 : 0,
-                borderLeft: "3px solid #7c3aed",
-                paddingLeft: 12,
-              }}
-            >
-              {summary}
-            </Typography.Paragraph >
-            {portfolioTips.length > 0 ? (
-              <div style={{ marginTop: 8 }}>
-                <div className="fm-review-tag">投资小建议</div>
-                <ul
-                  style={{
-                    margin: "8px 0 0",
-                    paddingLeft: 18,
-                    marginBottom: 0,
-                  }}
-                >
-                  {portfolioTips.map((t, i) => (
-                    <li key={i} style={{ marginBottom: 4 }}>
-                      {t}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-
-            <SourcesBlock sources={globalSources} />
-          </div>
-          ) : null}
-          {!summary && portfolioTips.length > 0 ? (
-          <div style={{ marginBottom: 16 }}>
-            <Alert
-              type="info"
-              showIcon
-              message="组合层面小建议"
-              description={
-                <ul
-                  style={{
-                    margin: "8px 0 0",
-                    paddingLeft: 18,
-                    marginBottom: 0,
-                  }}
-                >
-                  {portfolioTips.map((t, i) => (
-                    <li key={i} style={{ marginBottom: 4 }}>
-                      {t}
-                    </li>
-                  ))}
-                </ul>
-              }
-            />
-            <SourcesBlock sources={globalSources} />
-          </div>
-          ) : null}
-          {!summary &&
-          portfolioTips.length === 0 &&
-          globalSources.length > 0 ? (
-          <div style={{ marginBottom: 16 }}>
-            <SourcesBlock sources={globalSources} />
-          </div>
-          ) : null}
-
-          {items.length > 0 ? (
-          <List
-            itemLayout="vertical"
-            dataSource={items}
-            renderItem={(it, idx) => {
-              const { todayDetail, weekDetail, investTip, sources } =
-                itemBriefDetail(it);
-              return (
-                <List.Item
-                  key={`${it.code ?? idx}-${it.kind ?? ""}`}
-                  className="fm-review-list-item"
-                >
-                  <Typography.Title
-                    level={5}
-                    style={{
-                      marginTop: 0,
-                      marginBottom: 12,
-                    }}
-                  >
-                    {it.name ?? it.code}{" "}
-                    <Typography.Text type="secondary" code>
-                      {it.kind ?? "—"}
-                    </Typography.Text>
-                  </Typography.Title>
-                  <Typography.Paragraph style={{ marginBottom: 8 }}>
-                    <Typography.Text type="danger" strong>
-                      今日{" "}
-                    </Typography.Text>
-                    <span className="fm-review-text">{todayDetail}</span>
-                  </Typography.Paragraph>
-                  <Typography.Paragraph
-                    style={{ marginBottom: investTip ? 12 : 0 }}
-                  >
-                    <Typography.Text style={{ color: "#2563eb" }} strong>
-                      一周{" "}
-                    </Typography.Text>
-                    <span className="fm-review-text">{weekDetail}</span>
-                  </Typography.Paragraph>
-                  {investTip ? (
-                    <div>
-                      <div className="fm-review-tag" style={{ marginBottom: 3 }}>投资小建议</div>
-                      <div className="fm-review-text">{investTip}</div>
-                    </div>
-                  ) : null}
-                  <SourcesBlock sources={sources} />
-                </List.Item>
-              );
-            }}
-          />
-          ) : null}
-
-          {result && items.length === 0 && !summary ? (
-          <pre
-            style={{
-              maxHeight: 260,
-              overflow: "auto",
-              padding: 12,
-              borderRadius: 8,
-              background: "rgba(15,23,42,0.45)",
-              fontSize: 12,
-            }}
-          >
-            {JSON.stringify(result, null, 2)}
-          </pre>
-          ) : null}
-
-          {disclaimer ? (
-          <Typography.Paragraph
-            type="secondary"
-            style={{ marginTop: 16, marginBottom: 0, fontSize: 12 }}
-          >
-            {disclaimer}
-          </Typography.Paragraph>
-          ) : null}
-        </>
-      )}
+      <Tabs
+        activeKey={activeTab}
+        onChange={(k) => setActiveTab(k as "market" | "portfolio")}
+        items={[
+          {
+            key: "market",
+            label: "今日板块分析",
+            children: renderMarketTab(),
+          },
+          {
+            key: "portfolio",
+            label: "我的自选复盘",
+            children: renderPortfolioTab(),
+          },
+        ]}
+      />
     </Card>
   );
 }

@@ -5,7 +5,10 @@ import { AddInstrumentBar } from "./components/AddInstrumentBar";
 import { AiReviewSection } from "./components/AiReviewSection";
 import { Header } from "./components/Header";
 import { QuoteBoard } from "./components/QuoteBoard";
+import { fetchMarketIndices } from "./services/marketApi";
 import { ThemeContext } from "./context/ThemeContext";
+import AiChatModal from "./components/AiChatModal";
+import type { MarketIndexSnapshot } from "./types/market";
 import type { QuoteSnapshot } from "./types/quote";
 import { getAntdTheme } from "./theme/themeConfig";
 
@@ -16,8 +19,7 @@ function readInitialDark(): boolean {
   const s = localStorage.getItem(THEME_KEY);
   if (s === "light") return false;
   if (s === "dark") return true;
-  // return window.matchMedia("(prefers-color-scheme: dark)").matches;//默认跟随系统
-  return true;//默认固定暗色主题
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
 // 粒子背景（亮色减弱对比，避免喧宾夺主）
 function ParticleCanvas({ isDark }: { isDark: boolean }) {
@@ -119,6 +121,7 @@ function ParticleCanvas({ isDark }: { isDark: boolean }) {
 
 export default function App() {
   const [quotes, setQuotes] = useState<QuoteSnapshot[]>([]);
+  const [marketIndices, setMarketIndices] = useState<MarketIndexSnapshot[]>([]);
   const [isDark, setIsDark] = useState(readInitialDark);
 
   useEffect(() => {
@@ -128,6 +131,22 @@ export default function App() {
       isDark ? "dark" : "light",
     );
   }, [isDark]);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadMarket = async () => {
+      try {
+        const indices = await fetchMarketIndices();
+        if (mounted) setMarketIndices(indices);
+      } catch {
+        if (mounted) setMarketIndices([]);
+      }
+    };
+    void loadMarket();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <ConfigProvider theme={getAntdTheme(isDark)} locale={zhCN}>
@@ -139,13 +158,16 @@ export default function App() {
             <ParticleCanvas isDark={isDark} />
             <Header isDark={isDark} onThemeChange={setIsDark} />
             <main className="fm-main" style={{ zIndex: 1 }}>
-              <AddInstrumentBar />
-
+              <AddInstrumentBar quotes={quotes} />
               <QuoteBoard quotes={quotes} onQuotesChange={setQuotes} />
-              <AiReviewSection quotes={quotes} />
+              <AiReviewSection
+                quotes={quotes}
+                marketIndices={marketIndices}
+              />
+              <AiChatModal quotes={quotes} />
             </main>
             <footer className="fm-footer">
-              Fund Analysis Matrix · 基金股票黄金每日复盘 · by illusionno（白桃与猫）
+              FundMatrix · 基金股票黄金每日复盘 · by 白桃与猫
             </footer>
           </div>
         </AntdApp>
