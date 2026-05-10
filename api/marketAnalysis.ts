@@ -1,6 +1,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import type { MarketIndexSnapshot } from './lib/marketCore'
+import { parseJsonBody } from './lib/parseBody'
 import { REVIEW_DISCLAIMER, runAiMarketAnalysis } from './lib/reviewCore'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -28,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const body = (typeof req.body === 'string' ? JSON.parse(req.body) : req.body) as {
+    const body = parseJsonBody(req) as {
       marketIndices?: MarketIndexSnapshot[]
     }
     const marketIndices = Array.isArray(body.marketIndices) ? body.marketIndices : undefined

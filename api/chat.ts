@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import type { QuoteSnapshot } from "./lib/quoteCore";
+import { parseJsonBody } from "./lib/parseBody";
 import {
   CHAT_DISCLAIMER,
   runAiChat,
@@ -47,9 +48,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const body = (
-      typeof req.body === "string" ? JSON.parse(req.body) : req.body
-    ) as {
+    const body = parseJsonBody(req) as {
       messages?: unknown;
       quotes?: QuoteSnapshot[];
       stream?: unknown;

@@ -18,9 +18,17 @@ const MARKET_INDEX_LIST: MarketIndexSpec[] = [
   { id: "cyb", secid: "0.399006", fallbackName: "创业板指" },
 ];
 
+/** 供 API 返回提示文案（与上方列表长度一致） */
+export const MARKET_INDEX_TOTAL = MARKET_INDEX_LIST.length;
+
 async function fetchText(url: string): Promise<string> {
   const r = await fetch(url, {
-    headers: { "User-Agent": "Mozilla/5.0 FundMatrix/1.0" },
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      Accept: "application/json, text/plain, */*",
+      Referer: "https://quote.eastmoney.com/",
+    },
   });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return r.text();
@@ -74,6 +82,20 @@ async function fetchIndex(spec: MarketIndexSpec): Promise<MarketIndexSnapshot> {
   };
 }
 
+/** 单指数失败不拖垮整体（境外 Serverless 访问东财常被限流/阻断） */
+async function fetchIndexSafe(
+  spec: MarketIndexSpec,
+): Promise<MarketIndexSnapshot | null> {
+  try {
+    return await fetchIndex(spec);
+  } catch {
+    return null;
+  }
+}
+
 export async function resolveMarketIndices(): Promise<MarketIndexSnapshot[]> {
-  return Promise.all(MARKET_INDEX_LIST.map((spec) => fetchIndex(spec)));
+  const rows = await Promise.all(
+    MARKET_INDEX_LIST.map((spec) => fetchIndexSafe(spec)),
+  );
+  return rows.filter((x): x is MarketIndexSnapshot => x !== null);
 }

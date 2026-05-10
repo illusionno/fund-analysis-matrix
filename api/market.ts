@@ -1,5 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { resolveMarketIndices } from "./lib/marketCore";
+import {
+  MARKET_INDEX_TOTAL,
+  resolveMarketIndices,
+} from "./lib/marketCore";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -18,7 +21,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const indices = await resolveMarketIndices();
-    res.status(200).json({ indices });
+    const payload: {
+      indices: typeof indices;
+      warning?: string;
+    } = { indices };
+    if (indices.length === 0) {
+      payload.warning =
+        "大盘指数行情暂不可用（上游可能对境外/机房 IP 有限制）。可稍后重试，或在支持访问国内行情的环境下使用。";
+    } else if (indices.length < MARKET_INDEX_TOTAL) {
+      payload.warning = `部分指数行情未返回（${indices.length}/${MARKET_INDEX_TOTAL}），可能与网络或数据源限制有关。`;
+    }
+    res.status(200).json(payload);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     res.status(500).json({ error: msg });
