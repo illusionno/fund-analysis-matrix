@@ -1,6 +1,7 @@
 @use "./variables" as *;
 
 .fm-shell {
+  width: 100%;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -13,33 +14,33 @@
   &--light {
     background:
       radial-gradient(
-        ellipse 95% 58% at 50% -12%,
-        $fm-light-page-accent-blue,
+        ellipse 88% 55% at 50% -8%,
+        $fm-light-page-accent-warm,
         transparent
       ),
       radial-gradient(
-        ellipse 52% 42% at 100% 18%,
-        $fm-light-page-accent-violet,
+        ellipse 48% 38% at 100% 14%,
+        $fm-light-page-accent-soft,
         transparent
       ),
-      linear-gradient(180deg, #fafbfd 0%, $fm-light-page 42%, #eef2f9 100%);
-    color: #0f172a;
+      linear-gradient(180deg, #fdfcfa 0%, $fm-light-page 48%, #f3f0eb 100%);
+    color: #1c1b1a;
   }
 
   &--dark {
     background:
       radial-gradient(
-        ellipse 90% 60% at 50% -15%,
-        rgba(37, 99, 235, 0.14),
+        ellipse 85% 58% at 50% -12%,
+        rgba(232, 168, 124, 0.07),
         transparent
       ),
       radial-gradient(
-        ellipse 50% 45% at 100% 20%,
-        rgba(99, 102, 241, 0.1),
+        ellipse 46% 42% at 96% 18%,
+        rgba(168, 92, 69, 0.06),
         transparent
       ),
-      #0b1120;
-    color: rgba(255, 255, 255, 0.88);
+      linear-gradient(180deg, #1a1918 0%, #141312 55%, #0f0e0d 100%);
+    color: rgba(255, 250, 245, 0.9);
   }
 }
 
@@ -53,31 +54,34 @@
   padding: 14px 20px;
   margin: 12px auto 0;
   width: calc(100% - 24px);
+  max-width: 100%;
+  box-sizing: border-box;
   border: 1px solid rgba(148, 163, 184, 0.14);
   border-radius: 18px;
   position: sticky;
-  top: 12px;
+  top: 0;
   z-index: 20;
 }
 
 .fm-shell--light .fm-header {
-  background: rgba(255, 255, 255, 0.84);
-  -webkit-backdrop-filter: blur(14px) saturate(1.05);
-  backdrop-filter: blur(14px) saturate(1.05);
-  border-color: rgba(15, 23, 42, 0.09);
+  background: rgba(255, 254, 252, 0.88);
+  -webkit-backdrop-filter: blur(14px) saturate(1.02);
+  backdrop-filter: blur(14px) saturate(1.02);
+  border-color: rgba(44, 40, 37, 0.08);
   box-shadow:
-    0 10px 24px rgba(15, 23, 42, 0.06),
-    0 1px 0 rgba(255, 255, 255, 0.9) inset;
+    0 8px 28px rgba(44, 40, 37, 0.05),
+    0 1px 0 rgba(255, 255, 255, 0.92) inset;
+
 }
 
 .fm-shell--dark .fm-header {
-  background: rgba(15, 23, 42, 0.62);
-  -webkit-backdrop-filter: blur(18px) saturate(1.18);
-  backdrop-filter: blur(18px) saturate(1.18);
-  border-color: rgba(148, 163, 184, 0.18);
+  background: rgba(30, 29, 27, 0.72);
+  -webkit-backdrop-filter: blur(18px) saturate(1.06);
+  backdrop-filter: blur(18px) saturate(1.06);
+  border-color: rgba(255, 248, 240, 0.1);
   box-shadow:
-    0 14px 32px rgba(2, 6, 23, 0.45),
-    0 1px 0 rgba(255, 255, 255, 0.05) inset;
+    0 12px 36px rgba(0, 0, 0, 0.35),
+    0 1px 0 rgba(255, 255, 255, 0.04) inset;
 }
 .fm-header__brand {
   min-width: 0;
@@ -91,7 +95,7 @@
   line-height: 1.1 !important;
 }
 .fm-header__title-accent {
-  color: #3b82f6;
+  color: $fm-accent;
 }
 .fm-header__subtitle-tag {
   font-weight: 500;
@@ -113,10 +117,10 @@
 }
 
 .fm-shell--light .fm-header__theme-switch {
-  background: rgba(15, 23, 42, 0.04);
+  background: rgba(44, 40, 37, 0.05);
 }
 .fm-shell--dark .fm-header__theme-switch {
-  background: rgba(148, 163, 184, 0.12);
+  background: rgba(255, 248, 240, 0.08);
 }
 .fm-particle-canvas {
   position: fixed;
@@ -129,43 +133,43 @@
 }
 .fm-logo {
   display: flex;
+  flex-shrink: 0;
   justify-content: center;
   align-items: center;
-  width: 60px;
-  height: 60px;
-  border-radius: 12px;
-  position: relative; /* 必须有定位，以便内部伪元素绝对定位 */
-  overflow: hidden;   /* 确保底部发光不会超出圆角外框 */
-  
-  /* 1. 外框（容器）深色背景和底部发光 */
-  /* 可选：给外框加个非常微弱的高光描边，增加立体感 */
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
-  
-  /* 2. 使用 ::after 专门用来渲染渐变色高亮的图标 */
-  &::after {
-    content: "";
-    position: absolute;
-    /* 图标大小根据你原有的 background-size 调整，居中 */
-    width: 60px;
-    height: 60px;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    /* 图标本身的明亮渐变色 (青绿到亮蓝) */
-    
-    background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%) !important;
-    -webkit-text-fill-color: transparent;
-    /* 将你原本在 background 里的 SVG 转移到 mask-image 中 */
-    -webkit-mask-image: url("https://img.alicdn.com/imgextra/i1/O1CN01rP8vnc1PypVwjsoua_!!6000000001910-55-tps-84-84.svg");
-    -webkit-mask-repeat: no-repeat;
-    -webkit-mask-position: center;
-    -webkit-mask-size: 60px;
-    
-    mask-image: url("https://img.alicdn.com/imgextra/i1/O1CN01rP8vnc1PypVwjsoua_!!6000000001910-55-tps-84-84.svg");
-    mask-repeat: no-repeat;
-    mask-position: center;
-    mask-size: 60px;
-  }
+  width: 56px;
+  height: 56px;
+  padding: 6px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 6px solid var(--fm-border-subtle);
+  box-sizing: border-box;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.85) inset,
+    0 2px 10px rgba(44, 40, 37, 0.07);
+}
+
+.fm-shell--light .fm-logo {
+  background: rgba(255, 254, 252, 0.92);
+}
+
+.fm-shell--dark .fm-logo {
+  background: rgba(255, 248, 240, 0.06);
+  border-color: rgba(255, 248, 240, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 2px 12px rgba(0, 0, 0, 0.32);
+}
+
+/* 不用 width/height 100% 撑满，避免非正方形素材被拉成正方形产生变形 */
+.fm-logo__img {
+  display: block;
+  flex-shrink: 0;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  object-position: center;
 }
 .fm-main {
   flex: 1;
@@ -212,15 +216,15 @@
 }
 
 .fm-shell--light .fm-market-strip {
-  background: rgba(255, 255, 255, 0.78) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(1.04);
-  backdrop-filter: blur(12px) saturate(1.04);
+  background: rgba(255, 254, 252, 0.82) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(1.02);
+  backdrop-filter: blur(12px) saturate(1.02);
 }
 
 .fm-shell--dark .fm-market-strip {
-  background: rgba(15, 23, 42, 0.56) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(1.1);
-  backdrop-filter: blur(16px) saturate(1.1);
+  background: rgba(28, 27, 25, 0.72) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.06);
+  backdrop-filter: blur(16px) saturate(1.06);
 }
 
 .fm-market-strip__list {
@@ -241,15 +245,15 @@
   gap: 4px 8px;
   padding: 9px 12px;
   border-radius: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.24);
+  border: 1px solid var(--fm-border-subtle);
 }
 
 .fm-shell--light .fm-market-strip__item {
-  background: rgba(15, 23, 42, 0.03);
+  background: rgba(44, 40, 37, 0.03);
 }
 
 .fm-shell--dark .fm-market-strip__item {
-  background: rgba(148, 163, 184, 0.08);
+  background: rgba(255, 248, 240, 0.05);
 }
 
 .fm-market-strip__name {
@@ -289,13 +293,13 @@
 }
 .fm-shell--light .fm-quote-snapshot-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.1);
-  border-color: rgba(37, 99, 235, 0.28) !important;
+  box-shadow: 0 12px 26px rgba(44, 40, 37, 0.08);
+  border-color: rgba(201, 100, 66, 0.28) !important;
 }
 .fm-shell--dark .fm-quote-snapshot-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 30px rgba(2, 6, 23, 0.45);
-  border-color: rgba(59, 130, 246, 0.48) !important;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.38);
+  border-color: rgba(232, 168, 124, 0.38) !important;
 }
 @mixin gradient-border($color) {
   &::before {
@@ -340,50 +344,53 @@
   padding: 12px;
   border-radius: 14px;
 }
-@mixin fm-btn($color1, $color2) {
-  color: #0f172a !important;
-  background-image: linear-gradient(135deg, $color1 30%, $color2);
+@mixin fm-btn-solid($bg, $bgHover, $shadow: rgba(44, 40, 37, 0.12), $fg: #fffdfc) {
+  color: $fg !important;
+  background: $bg !important;
   border: none !important;
-  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.2);
-  transition: all 0.22s ease;
+  box-shadow: 0 1px 2px $shadow;
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
   &:hover {
-    background-image: linear-gradient(160deg, $color1 30%, $color2);
+    background: $bgHover !important;
     transform: translateY(-1px);
-    box-shadow: 0 10px 22px rgba(37, 99, 235, 0.25);
+    box-shadow: 0 4px 14px $shadow;
   }
   &:focus-visible {
-    outline: 2px solid rgba(59, 130, 246, 0.5);
+    outline: 2px solid rgba(201, 100, 66, 0.45);
     outline-offset: 1px;
   }
 }
 .fm-shell--dark .fm-primary-btn {
-  @include fm-btn(#00f9e5, #2d60ff);
+  @include fm-btn-solid(#e8a87c, #f0bc94, rgba(0, 0, 0, 0.32), #2a2624);
 }
 .fm-shell--dark .fm-clear-btn {
-  color: rgba(255, 255, 255, 0.9) !important;
-  background: rgba(148, 163, 184, 0.16) !important;
-  border: 1px solid rgba(148, 163, 184, 0.22) !important;
+  color: rgba(255, 250, 245, 0.88) !important;
+  background: rgba(255, 248, 240, 0.06) !important;
+  border: 1px solid rgba(255, 248, 240, 0.12) !important;
   box-shadow: none;
   &:hover {
     transform: none;
-    background: rgba(148, 163, 184, 0.24) !important;
+    background: rgba(255, 248, 240, 0.1) !important;
   }
 }
 .fm-shell--light .fm-primary-btn {
-  @include fm-btn(#00f9e5, #2d60ff);
+  @include fm-btn-solid($fm-accent, #b8583f, rgba(44, 40, 37, 0.12));
 }
 .fm-shell--light .fm-clear-btn {
-  color: #334155 !important;
-  background: rgba(148, 163, 184, 0.16) !important;
-  border: 1px solid rgba(148, 163, 184, 0.34) !important;
+  color: #3d3835 !important;
+  background: rgba(44, 40, 37, 0.05) !important;
+  border: 1px solid rgba(44, 40, 37, 0.12) !important;
   box-shadow: none;
   &:hover {
     transform: none;
-    background: rgba(148, 163, 184, 0.26) !important;
+    background: rgba(44, 40, 37, 0.09) !important;
   }
 }
 .fm-review-btn {
-  @include fm-btn(#926bfc, #fbbbdb);
+  @include fm-btn-solid(#b8583f, #a0503a, rgba(88, 48, 36, 0.18));
 }
 .fm-card-title-row {
   gap: 8px !important;
@@ -418,9 +425,38 @@
 }
 .fm-shell--light .fm-review-tag{
   background:$fm-green-text;
+  color: #fff;
   
 }
+/* 与「今日板块分析」Markdown 内 h1–h4 左侧短线（::before）同款 */
+.fm-advice {
+  position: relative;
+  padding-left: 12px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
 
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.18em;
+    bottom: 0.18em;
+    width: 4px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #e8a87c, #c96442);
+  }
+}
+
+.fm-shell--dark .fm-advice {
+  color: #e8a87c;
+}
+
+.fm-shell--light .fm-advice {
+  color: #a0503a;
+}
 
 .fm-review-text{
 font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
@@ -430,9 +466,206 @@ font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
 }
 .fm-review-summary__text {
   margin-bottom: 0 !important;
-  border-left: 3px solid #7c3aed;
+  border-left: 3px solid $fm-accent;
   padding-left: 12px;
 }
+
+/* 自选复盘：组合建议列表（与 Claude 暖灰系统一致，替代蓝色 Alert） */
+.fm-review-tips-ul {
+  margin: 10px 0 0;
+  padding-left: 1.15rem;
+  margin-bottom: 0;
+  font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  font-size: 13px;
+  line-height: 1.65;
+  letter-spacing: 0.01em;
+
+  li {
+    margin-bottom: 8px;
+    padding-left: 2px;
+
+    &::marker {
+      color: $fm-accent-muted;
+    }
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.fm-shell--dark .fm-review-tips-ul li::marker {
+  color: #e8a87c;
+}
+
+/** 仅有组合建议、无总览摘要时的强调区块 */
+.fm-review-callout {
+  margin-bottom: 16px;
+  padding: 14px 14px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--fm-border-subtle);
+}
+
+.fm-shell--light .fm-review-callout {
+  background: $fm-light-page-accent-warm;
+  box-shadow: 0 1px 0 rgba(44, 40, 37, 0.04);
+}
+
+.fm-shell--dark .fm-review-callout {
+  background: rgba(255, 248, 240, 0.055);
+  border-color: rgba(255, 248, 240, 0.09);
+}
+
+.fm-accent-icon {
+  color: $fm-accent;
+}
+
+.fm-shell--dark .fm-accent-icon {
+  color: #e8a87c;
+}
+
+.fm-week-heading {
+  color: #a0503a !important;
+}
+
+.fm-shell--dark .fm-week-heading {
+  color: #f0bc94 !important;
+}
+
+/* AI 复盘卡片内 Tabs：分段胶囊 + 图标，与渐变主题一致 */
+.fm-review-tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fm-review-tab-label__icon {
+  font-size: 15px;
+  opacity: 0.72;
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.fm-review-tab-label__text {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.fm-review .fm-review-tabs .ant-tabs-nav {
+  margin-bottom: 14px;
+}
+
+.fm-review .fm-review-tabs.ant-tabs-top > .ant-tabs-nav::before {
+  border-bottom: none;
+}
+
+.fm-review .fm-review-tabs .ant-tabs-nav-wrap {
+  flex: none;
+}
+
+.fm-review .fm-review-tabs .ant-tabs-nav-list {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 6px;
+  padding: 5px;
+  border-radius: 14px;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.fm-shell--dark .fm-review .fm-review-tabs .ant-tabs-nav-list {
+  background: rgba(28, 27, 25, 0.85);
+  border: 1px solid rgba(255, 248, 240, 0.09);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 6px 18px rgba(0, 0, 0, 0.28);
+}
+
+.fm-shell--light .fm-review .fm-review-tabs .ant-tabs-nav-list {
+  background: rgba(255, 254, 252, 0.92);
+  border: 1px solid rgba(44, 40, 37, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 3px 12px rgba(44, 40, 37, 0.04);
+}
+
+.fm-review .fm-review-tabs .ant-tabs-tab {
+  margin: 0 !important;
+  padding: 9px 18px !important;
+  border-radius: 11px !important;
+  border: 1px solid transparent !important;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.fm-shell--dark .fm-review .fm-review-tabs .ant-tabs-tab {
+  color: rgba(255, 245, 235, 0.58) !important;
+}
+
+.fm-shell--dark .fm-review .fm-review-tabs .ant-tabs-tab:hover {
+  color: rgba(255, 250, 245, 0.94) !important;
+  background: rgba(232, 168, 124, 0.12) !important;
+}
+
+.fm-shell--light .fm-review .fm-review-tabs .ant-tabs-tab {
+  color: #57524d !important;
+}
+
+.fm-shell--light .fm-review .fm-review-tabs .ant-tabs-tab:hover {
+  color: #1c1b1a !important;
+  background: rgba(201, 100, 66, 0.08) !important;
+}
+
+.fm-shell--dark .fm-review .fm-review-tabs .ant-tabs-tab-active {
+  background: linear-gradient(
+    135deg,
+    rgba(232, 168, 124, 0.28),
+    rgba(201, 100, 66, 0.18)
+  ) !important;
+  border-color: rgba(232, 168, 124, 0.35) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+}
+
+.fm-shell--light .fm-review .fm-review-tabs .ant-tabs-tab-active {
+  background: linear-gradient(
+    135deg,
+    rgba(201, 100, 66, 0.14),
+    rgba(212, 165, 116, 0.12)
+  ) !important;
+  border-color: rgba(201, 100, 66, 0.26) !important;
+  box-shadow: 0 3px 12px rgba(88, 52, 38, 0.1);
+}
+
+.fm-shell--dark .fm-review .fm-review-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #fff5eb !important;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+}
+
+.fm-shell--light .fm-review .fm-review-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #8b4518 !important;
+  font-weight: 600 !important;
+}
+
+.fm-review .fm-review-tabs .ant-tabs-tab-active .fm-review-tab-label__icon {
+  opacity: 1;
+  color: inherit;
+}
+
+.fm-review .fm-review-tabs .ant-tabs-ink-bar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-review .fm-review-tabs .ant-tabs-tab,
+  .fm-review-tab-label__icon {
+    transition: none !important;
+  }
+}
+
 .fm-watch-toolbar {
   justify-content: space-between;
 }
@@ -465,11 +698,11 @@ font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
 }
 
 .fm-shell--light .fm-watchlist-item {
-  background: rgba(15, 23, 42, 0.035);
+  background: rgba(44, 40, 37, 0.03);
 }
 
 .fm-shell--dark .fm-watchlist-item {
-  background: rgba(148, 163, 184, 0.08);
+  background: rgba(255, 248, 240, 0.05);
 }
 
 .fm-watchlist-item:hover {
@@ -477,13 +710,13 @@ font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
 }
 
 .fm-shell--light .fm-watchlist-item:hover {
-  border-color: rgba(37, 99, 235, 0.24);
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+  border-color: rgba(201, 100, 66, 0.28);
+  box-shadow: 0 10px 22px rgba(44, 40, 37, 0.07);
 }
 
 .fm-shell--dark .fm-watchlist-item:hover {
-  border-color: rgba(59, 130, 246, 0.35);
-  box-shadow: 0 12px 24px rgba(2, 6, 23, 0.34);
+  border-color: rgba(232, 168, 124, 0.35);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.32);
 }
 
 .fm-watchlist-item__main {
@@ -512,13 +745,13 @@ font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
 }
 
 .fm-watchlist-item__kind--fund {
-  color: #2563eb;
-  background: rgba(37, 99, 235, 0.12);
+  color: #a0503a;
+  background: rgba(201, 100, 66, 0.12);
 }
 
 .fm-watchlist-item__kind--stock {
-  color: #7c3aed;
-  background: rgba(124, 58, 237, 0.12);
+  color: #8b6914;
+  background: rgba(184, 134, 11, 0.12);
 }
 
 .fm-watchlist-item__kind--gold {
@@ -573,17 +806,21 @@ font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
   border-radius: 12px;
 }
 .fm-chat-bubble--user {
-  background: var(--fm-blue-soft, rgba(3, 137, 255, 0.12));
-  border: 1px solid rgba(3, 137, 255, 0.25);
+  background: var(--fm-accent-soft);
+  border: 1px solid rgba(201, 100, 66, 0.22);
+}
+
+:root[data-theme="dark"] .fm-chat-bubble--user {
+  border-color: rgba(232, 168, 124, 0.28);
 }
 .fm-chat-bubble--assistant {
-  border: 1px solid rgba(148, 163, 184, 0.22);
+  border: 1px solid var(--fm-border-subtle);
 }
 .fm-shell--light .fm-chat-bubble--assistant {
-  background: rgba(15, 23, 42, 0.035);
+  background: rgba(44, 40, 37, 0.03);
 }
 .fm-shell--dark .fm-chat-bubble--assistant {
-  background: rgba(148, 163, 184, 0.1);
+  background: rgba(255, 248, 240, 0.06);
 }
 
 .fm-card,
@@ -597,21 +834,24 @@ font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
 
 .fm-shell--light .fm-card:hover,
 .fm-shell--light .fm-review:hover {
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
+  box-shadow: 0 12px 28px rgba(44, 40, 37, 0.06);
 }
 
 .fm-shell--dark .fm-card:hover,
 .fm-shell--dark .fm-review:hover {
-  box-shadow: 0 16px 34px rgba(2, 6, 23, 0.45);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.38);
 }
 html {
+  width: 100%;
   font-family: "Inter", "PingFang SC", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
 body {
+  width: 100%;
   margin: 0;
   min-height: 100vh;
+  overflow-x: hidden;
   transition:
     background-color 0.35s ease,
     color 0.35s ease;
@@ -619,22 +859,29 @@ body {
 
 :root[data-theme="light"] body {
   background-color: $fm-light-page;
-  color: #0f172a;
+  color: #1c1b1a;
 }
 
 :root[data-theme="dark"] body {
-  background-color: #0b1120;
+  background-color: #141312;
 }
 
 #root {
+  width: 100%;
   min-height: 100vh;
 }
 
 button:focus-visible,
 input:focus-visible,
 [role="button"]:focus-visible {
-  outline: 2px solid rgba(59, 130, 246, 0.5);
+  outline: 2px solid rgba(201, 100, 66, 0.45);
   outline-offset: 1px;
+}
+
+:root[data-theme="dark"] button:focus-visible,
+:root[data-theme="dark"] input:focus-visible,
+:root[data-theme="dark"] [role="button"]:focus-visible {
+  outline-color: rgba(232, 168, 124, 0.55);
 }
 
 @media (max-width: 768px) {
@@ -643,6 +890,12 @@ input:focus-visible,
     padding: 12px 14px;
     border-radius: 14px;
     top: 8px;
+  }
+
+  .fm-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
   }
 
   .fm-watchlist-grid {

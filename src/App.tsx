@@ -43,23 +43,29 @@ function ParticleCanvas({ isDark }: { isDark: boolean }) {
     resize(); // 初始调整大小
     window.addEventListener("resize", resize);
 
-    const particles = Array.from({ length: 50 }, () => {
-      const r = Math.random() * 2.0 + 0.6; // 范围 0.6 ~ 2.0px，大小差异明显
+    const PARTICLE_COUNT = 96;
+    /** 粒子大小与原先一致：约 0.6 ~ 2.6 px */
+    const particles = Array.from({ length: PARTICLE_COUNT }, () => {
+      const r = Math.random() * 2.0 + 0.5;
       return {
         x: Math.random() * window.innerWidth,
         y: Math.random() * window.innerHeight,
         vx: (Math.random() - 0.5) * 0.4,
         vy: (Math.random() - 0.5) * 0.4,
         r,
-        glow: r * 5, // 越大的粒子光晕越强
+        glow: r * 5,
       };
     });
 
     // 与 index.css :root 主题色一致，canvas 无法用 CSS 变量，从 DOM 读取
     const primaryRgb = () =>
       getComputedStyle(document.documentElement)
+        .getPropertyValue("--fm-accent")
+        .trim() ||
+      getComputedStyle(document.documentElement)
         .getPropertyValue("--fm-blue")
-        .trim() || "3, 137, 255";
+        .trim() ||
+      "201, 100, 66";
 
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -92,14 +98,15 @@ function ParticleCanvas({ isDark }: { isDark: boolean }) {
           const q = particles[j];
           const dx = p.x - q.x;
           const dy = p.y - q.y;
-          const LINK_DIST = 150;
+          /** 仅当两粒子足够近才连线，线段更短（视觉上「连得更近」） */
+          const LINK_DIST = 58;
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < LINK_DIST) {
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(q.x, q.y);
-            ctx.strokeStyle = `rgba(${rgb}, ${(isDark ? 0.35 : 0.12) * (1 - dist / LINK_DIST)})`;
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = `rgba(${rgb}, ${(isDark ? 0.44 : 0.11) * (1 - dist / LINK_DIST)})`;
+            ctx.lineWidth = 0.75;
             ctx.lineCap = "round";
             ctx.stroke();
           }

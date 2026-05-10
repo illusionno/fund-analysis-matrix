@@ -173,9 +173,9 @@ export function QuoteBoard({ quotes, onQuotesChange }: QuoteBoardProps) {
         size="small"
         title={
           <Space>
-            <LineChartOutlined style={{ color: '#3b82f6' }} />
+            <LineChartOutlined className="fm-accent-icon" aria-hidden />
             <span>行情快照</span>
-            <Tag color="blue"> 点击任意行情卡片查看趋势图（周 / 月 / 年可切换）</Tag>
+            <Tag color="gold"> 点击任意行情卡片查看趋势图（周 / 月 / 年可切换）</Tag>
           </Space>
         }
         variant="borderless"

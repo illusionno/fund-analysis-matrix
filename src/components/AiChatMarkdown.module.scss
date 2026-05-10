@@ -1,107 +1,325 @@
 .root {
-    font-size: 14px;
-    line-height: 1.55;
-    word-break: break-word;
-  
-    :global {
-      p {
-        margin: 0 0 0.65em;
-      }
-      p:last-child {
-        margin-bottom: 0;
-      }
-  
-      h1,
-      h2,
-      h3,
-      h4 {
-        margin: 0.85em 0 0.45em;
-        font-weight: 600;
-        line-height: 1.35;
-      }
-      h1:first-child,
-      h2:first-child,
-      h3:first-child,
-      h4:first-child {
-        margin-top: 0;
-      }
-      h1 {
-        font-size: 1.25em;
-      }
-      h2 {
-        font-size: 1.12em;
-      }
-      h3,
-      h4 {
-        font-size: 1.05em;
-      }
-  
-      ul,
-      ol {
-        margin: 0 0 0.65em;
-        padding-left: 1.35em;
-      }
-      li {
-        margin-bottom: 0.25em;
-      }
-  
-      blockquote {
-        margin: 0.5em 0;
-        padding: 0.35em 0.75em;
-        border-left: 3px solid rgba(3, 137, 255, 0.35);
-        background: rgba(0, 0, 0, 0.03);
-        border-radius: 0 6px 6px 0;
-      }
-  
-      hr {
-        margin: 0.85em 0;
-        border: none;
-        border-top: 1px solid rgba(0, 0, 0, 0.08);
-      }
-  
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 0.5em 0 0.75em;
-        font-size: 0.92em;
-      }
-      th,
-      td {
-        border: 1px solid rgba(0, 0, 0, 0.1);
-        padding: 0.35em 0.5em;
-        text-align: left;
-      }
-      th {
-        background: rgba(0, 0, 0, 0.04);
-      }
-  
-      pre {
-        margin: 0.5em 0 0.65em;
-        padding: 0.65em 0.75em;
-        border-radius: 8px;
-        overflow-x: auto;
-        font-size: 0.88em;
-        line-height: 1.45;
-        background: rgba(0, 0, 0, 0.06);
-      }
-      pre code {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        background: none;
-        padding: 0;
-      }
-  
-      :not(pre) > code {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-size: 0.88em;
-        padding: 0.12em 0.38em;
-        border-radius: 4px;
-        background: rgba(0, 0, 0, 0.07);
-      }
+  font-size: 14px;
+  line-height: 1.55;
+  word-break: break-word;
+
+  :global {
+    p {
+      margin: 0 0 0.65em;
+    }
+    p:last-child {
+      margin-bottom: 0;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      margin: 0.85em 0 0.45em;
+      font-weight: 600;
+      line-height: 1.35;
+    }
+    h1:first-child,
+    h2:first-child,
+    h3:first-child,
+    h4:first-child {
+      margin-top: 0;
+    }
+    h1 {
+      font-size: 1.25em;
+    }
+    h2 {
+      font-size: 1.12em;
+    }
+    h3,
+    h4 {
+      font-size: 1.05em;
+    }
+
+    ul,
+    ol {
+      margin: 0 0 0.65em;
+      padding-left: 1.35em;
+    }
+    li {
+      margin-bottom: 0.25em;
+    }
+
+    blockquote {
+      margin: 0.5em 0;
+      padding: 0.35em 0.75em;
+      border-left: 3px solid rgba(201, 100, 66, 0.35);
+      background: rgba(44, 40, 37, 0.03);
+      border-radius: 0 6px 6px 0;
+    }
+
+    hr {
+      margin: 0.85em 0;
+      border: none;
+      border-top: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.5em 0 0.75em;
+      font-size: 0.92em;
+    }
+    th,
+    td {
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      padding: 0.35em 0.5em;
+      text-align: left;
+    }
+    th {
+      background: rgba(0, 0, 0, 0.04);
+    }
+
+    pre {
+      margin: 0.5em 0 0.65em;
+      padding: 0.65em 0.75em;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.88em;
+      line-height: 1.45;
+      background: rgba(0, 0, 0, 0.06);
+    }
+    pre code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      background: none;
+      padding: 0;
+    }
+
+    :not(pre) > code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.88em;
+      padding: 0.12em 0.38em;
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.07);
     }
   }
-  
-  .thinking {
-    font-size: 13px;
-    opacity: 0.92;
+}
+
+.thinking {
+  font-size: 13px;
+  opacity: 0.92;
+}
+
+/* 今日板块分析：Claude 式暖灰 + 赤陶点缀 */
+.market {
+  padding: 16px 18px;
+  border-radius: 16px;
+}
+
+:global(.fm-shell--dark) .market {
+  background: rgba(28, 27, 25, 0.55);
+  border: 1px solid rgba(255, 248, 240, 0.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+
+:global(.fm-shell--light) .market {
+  background: rgba(255, 254, 252, 0.92);
+  border: 1px solid rgba(44, 40, 37, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 1px 3px rgba(44, 40, 37, 0.04);
+}
+
+.market :global {
+  p {
+    margin: 0 0 0.72em;
+    line-height: 1.65;
   }
-  
+
+  h1 {
+    font-size: 1.35em;
+    letter-spacing: 0.02em;
+    margin-top: 0.25em;
+  }
+
+  h2 {
+    margin-top: 1.15em;
+    padding-bottom: 0.25em;
+    border-bottom: 1px solid rgba(168, 92, 69, 0.18);
+  }
+
+  li {
+    line-height: 1.58;
+  }
+
+  table {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 0 rgba(168, 92, 69, 0.12);
+  }
+
+  tbody tr:nth-child(even) {
+    background: rgba(168, 92, 69, 0.05);
+  }
+}
+
+.market :global {
+  h1,
+  h2,
+  h3,
+  h4 {
+    position: relative;
+    padding-left: 12px;
+    color: #e8a87c;
+  }
+
+  h1::before,
+  h2::before,
+  h3::before,
+  h4::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.18em;
+    bottom: 0.18em;
+    width: 4px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #e8a87c, #c96442);
+  }
+
+  strong {
+    color: #f0bc94;
+    font-weight: 700;
+  }
+
+  ul li::marker,
+  ol li::marker {
+    color: #e8a87c;
+    font-weight: 700;
+  }
+
+  blockquote {
+    border-left-color: rgba(232, 168, 124, 0.45);
+    background: linear-gradient(
+      90deg,
+      rgba(232, 168, 124, 0.1),
+      rgba(201, 100, 66, 0.05)
+    );
+  }
+
+  hr {
+    border-top-color: rgba(232, 168, 124, 0.28);
+    margin: 1.1em 0;
+  }
+
+  a {
+    color: #fdba8c;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    transition: color 0.2s ease;
+  }
+
+  a:hover {
+    color: #ffe4d4;
+  }
+
+  pre {
+    border: 1px solid rgba(255, 248, 240, 0.12);
+  }
+
+  th {
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+}
+
+:global(.fm-shell--dark) .market :global {
+  p,
+  li {
+    color: rgba(255, 250, 245, 0.88);
+  }
+
+  th {
+    background: rgba(232, 168, 124, 0.14) !important;
+    color: rgba(255, 250, 245, 0.94) !important;
+    border-color: rgba(255, 248, 240, 0.12) !important;
+  }
+
+  td {
+    border-color: rgba(255, 248, 240, 0.1) !important;
+    color: rgba(255, 248, 240, 0.86);
+  }
+
+  tbody tr:nth-child(even) {
+    background: rgba(255, 248, 240, 0.04);
+  }
+}
+
+:global(.fm-shell--light) .market :global {
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: #a0503a;
+  }
+
+  strong {
+    color: #7a9e8e;
+  }
+
+  ul li::marker,
+  ol li::marker {
+    color: #c96442;
+  }
+
+  p,
+  li {
+    color: #3d3835;
+  }
+
+  h2 {
+    border-bottom-color: rgba(44, 40, 37, 0.08);
+  }
+
+  th {
+    background: rgba(201, 100, 66, 0.1) !important;
+    color: #2c2420 !important;
+    border-color: rgba(44, 40, 37, 0.1) !important;
+  }
+
+  td {
+    border-color: rgba(44, 40, 37, 0.08) !important;
+    color: #3d3835;
+  }
+
+  tbody tr:nth-child(even) {
+    background: rgba(253, 251, 248, 0.95);
+  }
+
+  blockquote {
+    background: rgba(253, 251, 248, 0.98);
+    border-left-color: rgba(201, 100, 66, 0.35);
+  }
+
+  pre {
+    background: rgba(44, 40, 37, 0.04) !important;
+    border-color: rgba(44, 40, 37, 0.08);
+  }
+
+  :not(pre) > code {
+    background: rgba(201, 100, 66, 0.1);
+    color: #8b4518;
+  }
+
+  a {
+    color: #b8583f;
+  }
+
+  a:hover {
+    color: #9a4a32;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .market :global(a) {
+    transition: none;
+  }
+}

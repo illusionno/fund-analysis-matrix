@@ -1,32 +1,46 @@
+/* 金融涨跌语义（保持可读对比） */
 $fm-up: #cf1322;
 $fm-down: #389e0d;
-$fm-blue: rgb(3, 137, 255);
-$fm-blue-border: #264892d2;
-$fm-purple: #7c3aed;
-$fm-purple-border: #5a2a97;
-$fm-border-btn: #e0e0e0;
-$fm-green: #1b4709;
-$fm-green-text: #389e0d;
 
-/* 亮色主题：与暗色同一套色相，提高亮度、降低对比 */
-$fm-light-page: #f3f6fc;
-$fm-light-page-accent-blue: rgba(37, 99, 235, 0.09);
-$fm-light-page-accent-violet: rgba(99, 102, 241, 0.07);
-$fm-blue-border-light: rgba(114, 157, 251, 0.292);
-$fm-purple-border-light: rgba(111, 71, 181, 0.26);
-// 边框按钮
-:root[data-theme='light'] {
+/* Claude 式极简：暖灰底 + 赤陶点缀（非冷蓝紫） */
+$fm-accent: #c96442;
+$fm-accent-soft: #d4a574;
+$fm-accent-muted: #a85c45;
+
+/* 兼容旧名：卡片顶边渐变与描边 */
+$fm-blue: $fm-accent;
+$fm-purple: $fm-accent-soft;
+$fm-blue-border: rgba(90, 52, 38, 0.35);
+$fm-purple-border: rgba(120, 72, 52, 0.32);
+$fm-blue-border-light: rgba(201, 100, 66, 0.22);
+$fm-purple-border-light: rgba(212, 165, 116, 0.28);
+
+$fm-border-btn: #e8e4df;
+$fm-green: rgb(40, 86, 54);
+$fm-green-text: #609b71;
+
+/* 亮色页：暖纸色 */
+$fm-light-page: #faf9f7;
+$fm-light-page-accent-warm: rgba(201, 100, 66, 0.06);
+$fm-light-page-accent-soft: rgba(212, 165, 116, 0.07);
+
+:root[data-theme="light"] {
   --fm-bg-page: #{$fm-light-page};
-  --fm-bg-elevated: #ffffff81;
-  --fm-border-subtle: rgba(15, 23, 42, 0.1);
-  --fm-blue: 3, 137, 255;
-  --fm-purple: 124, 58, 237;
+  --fm-bg-elevated: rgba(255, 255, 255, 0.94);
+  --fm-border-subtle: rgba(44, 40, 37, 0.1);
+  /* 粒子 / 强调（与主色一致） */
+  --fm-accent: 201, 100, 66;
+  --fm-blue: 201, 100, 66;
+  --fm-purple: 212, 165, 116;
+  --fm-accent-soft: rgba(201, 100, 66, 0.14);
 }
 
-:root[data-theme='dark'] {
-  --fm-bg-page: #0b1120;
-  --fm-bg-elevated: rgba(24, 32, 54, 0.85);
-  --fm-border-subtle: rgba(148, 163, 184, 0.12);
-  --fm-blue: 3, 137, 255;
-  --fm-purple: 124, 58, 237;
+:root[data-theme="dark"] {
+  --fm-bg-page: #141312;
+  --fm-bg-elevated: rgba(34, 33, 31, 0.92);
+  --fm-border-subtle: rgba(255, 248, 240, 0.1);
+  --fm-accent: 232, 168, 124;
+  --fm-blue: 232, 168, 124;
+  --fm-purple: 212, 180, 150;
+  --fm-accent-soft: rgba(232, 168, 124, 0.16);
 }
