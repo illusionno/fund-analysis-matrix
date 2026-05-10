@@ -1,54 +1,76 @@
 import type { ThemeConfig } from 'antd'
 import { theme } from 'antd'
 
-/** 金融蓝主色 */
-export const FINANCIAL_BLUE = '#2563eb'
+/** Claude 式极简主色：亮色赤陶 / 暗色柔杏 */
+export const ACCENT_LIGHT = '#c96442'
+export const ACCENT_DARK = '#e8a87c'
 
 const baseToken = {
-  colorPrimary: FINANCIAL_BLUE,
-  borderRadius: 12,
+  borderRadius: 10,
   fontFamily: `'Inter', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif`,
-  colorSuccess: '#389e0d',
-  colorError: '#cf1322',
+  colorSuccess: '#4a7c59',
+  colorError: '#c45c4e',
 } as const
 
-/** 与 global.scss 亮色壳一致：冷灰底、略强调边框与层级 */
 const lightToken = {
   ...baseToken,
-  colorBgLayout: '#f3f6fc',
+  colorPrimary: ACCENT_LIGHT,
+  colorBgLayout: '#faf9f7',
   colorBgContainer: '#ffffff',
   colorBgElevated: '#ffffff',
-  colorBorder: 'rgba(15, 23, 42, 0.1)',
-  colorBorderSecondary: 'rgba(15, 23, 42, 0.06)',
-  colorText: '#0f172a',
-  colorTextSecondary: 'rgba(15, 23, 42, 0.68)',
-  colorTextTertiary: 'rgba(15, 23, 42, 0.45)',
-  colorTextQuaternary: 'rgba(15, 23, 42, 0.3)',
-  colorFillAlter: 'rgba(15, 23, 42, 0.02)',
-  colorFillSecondary: 'rgba(15, 23, 42, 0.04)',
-  colorFillTertiary: 'rgba(15, 23, 42, 0.06)',
+  colorBorder: 'rgba(44, 40, 37, 0.1)',
+  colorBorderSecondary: 'rgba(44, 40, 37, 0.06)',
+  colorText: '#1c1b1a',
+  colorTextSecondary: 'rgba(28, 27, 26, 0.64)',
+  colorTextTertiary: 'rgba(28, 27, 26, 0.42)',
+  colorTextQuaternary: 'rgba(28, 27, 26, 0.28)',
+  colorFillAlter: 'rgba(44, 40, 37, 0.02)',
+  colorFillSecondary: 'rgba(44, 40, 37, 0.04)',
+  colorFillTertiary: 'rgba(44, 40, 37, 0.06)',
+}
+
+const darkToken = {
+  ...baseToken,
+  colorPrimary: ACCENT_DARK,
+  colorBgLayout: '#141312',
+  colorBgContainer: '#1c1b1a',
+  colorBgElevated: '#222120',
+  colorBorder: 'rgba(255, 248, 240, 0.1)',
+  colorBorderSecondary: 'rgba(255, 248, 240, 0.06)',
+  colorText: 'rgba(255, 250, 245, 0.92)',
+  colorTextSecondary: 'rgba(255, 240, 230, 0.55)',
+  colorTextTertiary: 'rgba(255, 235, 220, 0.38)',
+  colorTextQuaternary: 'rgba(255, 230, 210, 0.26)',
+  colorFillAlter: 'rgba(255, 255, 255, 0.04)',
+  colorFillSecondary: 'rgba(255, 255, 255, 0.06)',
+  colorFillTertiary: 'rgba(255, 255, 255, 0.09)',
 }
 
 export function getAntdTheme(isDark: boolean): ThemeConfig {
   return {
     algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
-    token: isDark ? { ...baseToken } : lightToken,
+    token: isDark ? { ...darkToken } : { ...lightToken },
     components: {
       Card: {
-        borderRadiusLG: 14,
+        borderRadiusLG: 12,
       },
       Modal: {
-        borderRadiusLG: 14,
+        borderRadiusLG: 12,
       },
       Segmented: {
         borderRadius: 10,
       },
       Input: {
-        activeBorderColor: FINANCIAL_BLUE,
-        hoverBorderColor: 'rgba(37, 99, 235, 0.45)',
+        activeBorderColor: isDark ? ACCENT_DARK : ACCENT_LIGHT,
+        hoverBorderColor: isDark ? 'rgba(232, 168, 124, 0.55)' : 'rgba(201, 100, 66, 0.45)',
       },
       Select: {
-        optionSelectedBg: 'rgba(37, 99, 235, 0.08)',
+        optionSelectedBg: isDark
+          ? 'rgba(232, 168, 124, 0.12)'
+          : 'rgba(201, 100, 66, 0.08)',
+      },
+      Button: {
+        primaryShadow: 'none',
       },
     },
   }

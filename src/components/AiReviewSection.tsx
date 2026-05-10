@@ -1,12 +1,43 @@
-import { LinkOutlined, ThunderboltOutlined } from "@ant-design/icons";
+import {
+  AppstoreOutlined,
+  BarChartOutlined,
+  LinkOutlined,
+  ThunderboltOutlined,
+} from "@ant-design/icons";
 import { Alert, Button, Card, List, Space, Spin, Tag, Typography, Tabs } from "antd";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchAiReview, fetchAiMarketAnalysis } from "../services/reviewApi";
 import type { MarketIndexSnapshot } from "../types/market";
 import type { QuoteSnapshot } from "../types/quote";
+import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import mdStyles from "./AiChatMarkdown.module.scss";
+
+/** 模型常把整篇报告包在 ```markdown ... ``` 内，会被当成代码块从而原样显示 #、** */
+function unwrapOuterMarkdownFence(raw: string): string {
+  let t = raw.trim().replace(/\r\n/g, "\n");
+  for (let pass = 0; pass < 2; pass++) {
+    const lines = t.split("\n");
+    if (lines.length < 3) break;
+    const first = lines[0].trim();
+    const last = lines[lines.length - 1].trim();
+    if (!first.startsWith("```") || last !== "```") break;
+    t = lines.slice(1, -1).join("\n").trim();
+  }
+  return t;
+}
+
+const marketMarkdownComponents: Components = {
+  a({ href, children }) {
+    if (!href) return <span>{children}</span>;
+    return (
+      <Typography.Link href={href} target="_blank" rel="noopener noreferrer">
+        {children}
+      </Typography.Link>
+    );
+  },
+};
 
 type ReviewSource = { title?: string; url?: string };
 
@@ -222,6 +253,11 @@ export function AiReviewSection({
   const summary = summaryText(resultPortfolio);
   const portfolioTips = portfolioTipsList(resultPortfolio);
   const globalSources = rootSources(resultPortfolio);
+
+  const marketMarkdownText = useMemo(
+    () => (resultMarket ? unwrapOuterMarkdownFence(resultMarket) : ""),
+    [resultMarket],
+  );
   
   const autoRunKeyPortfolio = useMemo(() => {
     const q = quotes
@@ -276,17 +312,9 @@ export function AiReviewSection({
           {portfolioTips.length > 0 ? (
             <div>
               <div className="fm-review-tag">投资小建议</div>
-              <ul
-                style={{
-                  margin: "8px 0 0",
-                  paddingLeft: 18,
-                  marginBottom: 0,
-                }}
-              >
+              <ul className="fm-review-tips-ul">
                 {portfolioTips.map((t, i) => (
-                  <li key={i} style={{ marginBottom: 4 }}>
-                    {t}
-                  </li>
+                  <li key={i}>{t}</li>
                 ))}
               </ul>
             </div>
@@ -296,27 +324,13 @@ export function AiReviewSection({
         </div>
       ) : null}
       {!loadingPortfolio && !summary && portfolioTips.length > 0 ? (
-        <div style={{ marginBottom: 16 }}>
-          <Alert
-            type="info"
-            showIcon
-            message="组合层面小建议"
-            description={
-              <ul
-                style={{
-                  margin: "8px 0 0",
-                  paddingLeft: 18,
-                  marginBottom: 0,
-                }}
-              >
-                {portfolioTips.map((t, i) => (
-                  <li key={i} style={{ marginBottom: 4 }}>
-                    {t}
-                  </li>
-                ))}
-              </ul>
-            }
-          />
+        <div className="fm-review-callout">
+          <div className="fm-advice">组合层面小建议</div>
+          <ul className="fm-review-tips-ul">
+            {portfolioTips.map((t, i) => (
+              <li key={i}>{t}</li>
+            ))}
+          </ul>
           <SourcesBlock sources={globalSources} />
         </div>
       ) : null}
@@ -362,7 +376,7 @@ export function AiReviewSection({
                 <Typography.Paragraph
                   style={{ marginBottom: investTip ? 12 : 0 }}
                 >
-                  <Typography.Text style={{ color: "#2563eb" }} strong>
+                  <Typography.Text className="fm-week-heading" strong>
                     一周{" "}
                   </Typography.Text>
                   <span className="fm-review-text">{weekDetail}</span>
@@ -420,9 +434,12 @@ export function AiReviewSection({
       ) : null}
 
       {!loadingMarket && resultMarket ? (
-        <div className={mdStyles.root}>
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {resultMarket}
+        <div className={`${mdStyles.root} ${mdStyles.market}`}>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={marketMarkdownComponents}
+          >
+            {marketMarkdownText}
           </ReactMarkdown>
         </div>
       ) : null}
@@ -445,9 +462,9 @@ export function AiReviewSection({
       className="fm-review"
       title={
         <Space className="fm-card-title-row">
-          <ThunderboltOutlined style={{ color: "#7c3aed" }} />
+          <ThunderboltOutlined className="fm-accent-icon" aria-hidden />
           <span className="fm-card-title">AI 复盘</span>
-          <Tag color="purple" className="fm-card-hint-tag">
+          <Tag color="gold" className="fm-card-hint-tag">
             今日 + 近一周 · 含投资小建议
           </Tag>
         </Space>
@@ -467,17 +484,29 @@ export function AiReviewSection({
       }
     >
       <Tabs
+        className="fm-review-tabs"
         activeKey={activeTab}
         onChange={(k) => setActiveTab(k as "market" | "portfolio")}
+        tabBarGutter={0}
         items={[
           {
             key: "market",
-            label: "今日板块分析",
+            label: (
+              <span className="fm-review-tab-label">
+                <BarChartOutlined className="fm-review-tab-label__icon" aria-hidden />
+                <span className="fm-review-tab-label__text">今日板块分析</span>
+              </span>
+            ),
             children: renderMarketTab(),
           },
           {
             key: "portfolio",
-            label: "我的自选复盘",
+            label: (
+              <span className="fm-review-tab-label">
+                <AppstoreOutlined className="fm-review-tab-label__icon" aria-hidden />
+                <span className="fm-review-tab-label__text">我的自选复盘</span>
+              </span>
+            ),
             children: renderPortfolioTab(),
           },
         ]}

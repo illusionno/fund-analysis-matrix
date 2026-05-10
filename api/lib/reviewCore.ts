@@ -10,6 +10,41 @@ export type ReviewOptions = {
   model?: string
 }
 
+type ChatCompletionResult = { content: string } | { error: string; status: number }
+
+function resolveFallbackModel(base: string, model: string): string | undefined {
+  const normalizedBase = base.toLowerCase()
+  const normalizedModel = model.toLowerCase()
+  if (!normalizedBase.includes('dashscope.aliyuncs.com')) return undefined
+  if (!normalizedModel.includes('qwen') || normalizedModel === 'qwen-turbo') return undefined
+  return 'qwen-turbo'
+}
+
+async function requestChatCompletion(
+  base: string,
+  apiKey: string,
+  body: Record<string, unknown>,
+): Promise<ChatCompletionResult> {
+  const openaiRes = await fetch(`${base}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+
+  if (!openaiRes.ok) {
+    const errorText = await openaiRes.text()
+    return { error: errorText, status: openaiRes.status }
+  }
+
+  const raw = (await openaiRes.json()) as {
+    choices?: Array<{ message?: { content?: string } }>
+  }
+  return { content: raw.choices?.[0]?.message?.content ?? '' }
+}
+
 export async function runAiMarketAnalysis(
   marketIndices: MarketIndexSnapshot[] | undefined,
   opts: ReviewOptions,
@@ -38,33 +73,33 @@ export async function runAiMarketAnalysis(
 这是今日大盘的基础数据：
 ${marketLines.join('\n')}
 
-请直接输出 Markdown 格式的分析报告。`;
+请直接输出 Markdown 格式的分析报告（不要使用 \`\`\` 代码块包裹全文；不要用 HTML 标签）。`;
 
-  const openaiRes = await fetch(`${base}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${opts.apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.5,
-      messages: [
-        { role: 'user', content: userPrompt },
-      ],
-    }),
-  })
-
-  if (!openaiRes.ok) {
-    const t = await openaiRes.text()
-    return { error: `模型请求失败: ${openaiRes.status} ${t}` }
+  const requestBody = {
+    model,
+    temperature: 0.5,
+    messages: [{ role: 'user', content: userPrompt }],
   }
 
-  const raw = (await openaiRes.json()) as {
-    choices?: Array<{ message?: { content?: string } }>
+  let completion = await requestChatCompletion(base, opts.apiKey, requestBody)
+  if ('error' in completion && completion.status === 429) {
+    const fallbackModel = resolveFallbackModel(base, model)
+    if (fallbackModel) {
+      completion = await requestChatCompletion(base, opts.apiKey, {
+        ...requestBody,
+        model: fallbackModel,
+      })
+    }
   }
-  const text = raw.choices?.[0]?.message?.content ?? ''
-  return { result: text }
+
+  if ('error' in completion) {
+    if (completion.status === 429) {
+      return { error: `模型请求触发限流，请稍后重试或改用更轻量模型。上游返回: ${completion.status} ${completion.error}` }
+    }
+    return { error: `模型请求失败: ${completion.status} ${completion.error}` }
+  }
+
+  return { result: completion.content }
 }
 
 export async function runAiReview(
@@ -122,35 +157,38 @@ ${hasMarket ? `\n这是今日大盘的基础数据：\n${marketLines.join('\n')}
 这是今日大盘的基础数据：
 ${marketLines.join('\n')}`
 
-  const openaiRes = await fetch(`${base}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${opts.apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.5,
-      response_format: { type: 'json_object' },
-      messages: [
-        {
-          role: 'system',
-          content: '只输出合法 JSON 对象，不要使用 markdown 代码块。',
-        },
-        { role: 'user', content: userPrompt },
-      ],
-    }),
-  })
-
-  if (!openaiRes.ok) {
-    const t = await openaiRes.text()
-    return { error: `模型请求失败: ${openaiRes.status} ${t}` }
+  const requestBody = {
+    model,
+    temperature: 0.5,
+    response_format: { type: 'json_object' },
+    messages: [
+      {
+        role: 'system',
+        content: '只输出合法 JSON 对象，不要使用 markdown 代码块。',
+      },
+      { role: 'user', content: userPrompt },
+    ],
   }
 
-  const raw = (await openaiRes.json()) as {
-    choices?: Array<{ message?: { content?: string } }>
+  let completion = await requestChatCompletion(base, opts.apiKey, requestBody)
+  if ('error' in completion && completion.status === 429) {
+    const fallbackModel = resolveFallbackModel(base, model)
+    if (fallbackModel) {
+      completion = await requestChatCompletion(base, opts.apiKey, {
+        ...requestBody,
+        model: fallbackModel,
+      })
+    }
   }
-  const text = raw.choices?.[0]?.message?.content ?? '{}'
+
+  if ('error' in completion) {
+    if (completion.status === 429) {
+      return { error: `模型请求触发限流，请稍后重试或改用更轻量模型。上游返回: ${completion.status} ${completion.error}` }
+    }
+    return { error: `模型请求失败: ${completion.status} ${completion.error}` }
+  }
+
+  const text = completion.content || '{}'
   try {
     const result = JSON.parse(text) as unknown
     return { result }
