@@ -1,4 +1,4 @@
-import { fetchTextWithTimeout } from "./fetchWithTimeout";
+import { fetchTextWithTimeout } from "./fetchWithTimeout.js";
 
 export type MarketIndexSnapshot = {
   id: string;

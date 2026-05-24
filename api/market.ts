@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { formatFetchError } from "./lib/fetchWithTimeout";
+import { formatFetchError } from "./lib/fetchWithTimeout.js";
 import {
   MARKET_INDEX_TOTAL,
   resolveMarketIndices,
-} from "./lib/marketCore";
+} from "./lib/marketCore.js";
 
 const EMPTY_WARNING =
   "大盘指数行情暂不可用（上游可能对境外/机房 IP 有限制，或请求超时）。可稍后重试。";

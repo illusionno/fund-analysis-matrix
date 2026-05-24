@@ -1,12 +1,12 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import type { QuoteSnapshot } from "./lib/quoteCore";
-import { parseJsonBody } from "./lib/parseBody";
+import type { QuoteSnapshot } from "./lib/quoteCore.js";
+import { parseJsonBody } from "./lib/parseBody.js";
 import {
   CHAT_DISCLAIMER,
   runAiChat,
   streamAiChatToWriter,
   type ChatTurn,
-} from "./lib/chatCore";
+} from "./lib/chatCore.js";
 
 function parseTurns(raw: unknown): ChatTurn[] {
   if (!Array.isArray(raw)) return [];

@@ -1,9 +1,9 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import type { MarketIndexSnapshot } from './lib/marketCore'
-import { parseJsonBody } from './lib/parseBody'
-import { formatFetchError } from './lib/fetchWithTimeout'
-import { REVIEW_DISCLAIMER, runAiMarketAnalysis } from './lib/reviewCore'
+import type { MarketIndexSnapshot } from './lib/marketCore.js'
+import { parseJsonBody } from './lib/parseBody.js'
+import { formatFetchError } from './lib/fetchWithTimeout.js'
+import { REVIEW_DISCLAIMER, runAiMarketAnalysis } from './lib/reviewCore.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')

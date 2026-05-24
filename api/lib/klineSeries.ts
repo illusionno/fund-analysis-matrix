@@ -1,6 +1,6 @@
 /** 趋势图：股票/黄金走东方财富 K 线；基金为基于净值的模拟曲线 */
 
-import { fetchTextWithTimeout } from './fetchWithTimeout'
+import { fetchTextWithTimeout } from './fetchWithTimeout.js'
 
 export type KlinePeriod = 'week' | 'month' | 'year'
 

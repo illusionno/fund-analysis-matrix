@@ -1,6 +1,6 @@
-import type { QuoteSnapshot } from './quoteCore'
-import type { MarketIndexSnapshot } from './marketCore'
-import { fetchWithTimeout, formatFetchError } from './fetchWithTimeout'
+import type { QuoteSnapshot } from './quoteCore.js'
+import type { MarketIndexSnapshot } from './marketCore.js'
+import { fetchWithTimeout, formatFetchError } from './fetchWithTimeout.js'
 
 export const REVIEW_DISCLAIMER =
   '以上内容由大模型根据涨跌数据推测生成，不构成投资建议。市场有风险，决策请独立判断。'
