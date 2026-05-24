@@ -1,6 +1,10 @@
 /** 趋势图：股票/黄金走东方财富 K 线；基金为基于净值的模拟曲线 */
 
+import { fetchTextWithTimeout } from './fetchWithTimeout'
+
 export type KlinePeriod = 'week' | 'month' | 'year'
+
+const KLINE_FETCH_MS = 8000
 
 const GOLD_ETF_SECID = '1.518880'
 
@@ -17,10 +21,13 @@ function toSecid(code6: string): string {
   return `0.${c}`
 }
 
-async function fetchText(url: string): Promise<string> {
-  const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 FundMatrix/1.0' } })
-  if (!r.ok) throw new Error(`HTTP ${r.status}`)
-  return r.text()
+async function fetchText(url: string, label: string): Promise<string> {
+  return fetchTextWithTimeout(
+    url,
+    { headers: { 'User-Agent': 'Mozilla/5.0 FundMatrix/1.0' } },
+    KLINE_FETCH_MS,
+    label,
+  )
 }
 
 /** 基金：按周期生成模拟点（非真实历史） */
@@ -70,7 +77,7 @@ export async function fetchKlineSeries(
   if (kind === 'fund') {
     const c = code.replace(/\D/g, '')
     if (c.length !== 6) throw new Error('基金代码须为 6 位数字')
-    const text = await fetchText(`https://fundgz.1234567.com.cn/js/${c}.js`)
+    const text = await fetchText(`https://fundgz.1234567.com.cn/js/${c}.js`, '天天基金估值')
     const j = parseJsonpgz(text)
     const nav = Number.parseFloat(j.dwjz ?? '')
     const end = Number.isFinite(nav) ? nav : 0
@@ -91,7 +98,7 @@ export async function fetchKlineSeries(
       fields2: 'f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61',
       ut: 'fa5fd1943c7b386f172d6893dbfba10b',
     })
-  const kText = await fetchText(kUrl)
+  const kText = await fetchText(kUrl, '东方财富 K 线')
   const kJson = JSON.parse(kText) as { data?: { klines?: string[] } }
   const klines = kJson.data?.klines ?? []
   if (klines.length === 0) throw new Error('无K线数据')

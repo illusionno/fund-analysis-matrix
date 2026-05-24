@@ -1,5 +1,6 @@
 import type { QuoteSnapshot } from './quoteCore'
 import type { MarketIndexSnapshot } from './marketCore'
+import { fetchWithTimeout, formatFetchError } from './fetchWithTimeout'
 
 export const REVIEW_DISCLAIMER =
   '以上内容由大模型根据涨跌数据推测生成，不构成投资建议。市场有风险，决策请独立判断。'
@@ -10,7 +11,11 @@ export type ReviewOptions = {
   model?: string
 }
 
-type ChatCompletionResult = { content: string } | { error: string; status: number }
+type ChatCompletionResult =
+  | { content: string }
+  | { error: string; status: number; network?: boolean }
+
+const LLM_FETCH_MS = 25000
 
 function resolveFallbackModel(base: string, model: string): string | undefined {
   const normalizedBase = base.toLowerCase()
@@ -25,14 +30,29 @@ async function requestChatCompletion(
   apiKey: string,
   body: Record<string, unknown>,
 ): Promise<ChatCompletionResult> {
-  const openaiRes = await fetch(`${base}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  })
+  let openaiRes: Response
+  try {
+    openaiRes = await fetchWithTimeout(
+      `${base}/chat/completions`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      },
+      LLM_FETCH_MS,
+      '大模型服务',
+    )
+  } catch (e) {
+    console.error('[reviewCore] chat/completions network error:', e)
+    return {
+      error: formatFetchError(e, '大模型服务'),
+      status: 0,
+      network: true,
+    }
+  }
 
   if (!openaiRes.ok) {
     const errorText = await openaiRes.text()
@@ -93,6 +113,9 @@ ${marketLines.join('\n')}
   }
 
   if ('error' in completion) {
+    if (completion.network) {
+      return { error: completion.error }
+    }
     if (completion.status === 429) {
       return { error: `模型请求触发限流，请稍后重试或改用更轻量模型。上游返回: ${completion.status} ${completion.error}` }
     }
@@ -182,6 +205,9 @@ ${marketLines.join('\n')}`
   }
 
   if ('error' in completion) {
+    if (completion.network) {
+      return { error: completion.error }
+    }
     if (completion.status === 429) {
       return { error: `模型请求触发限流，请稍后重试或改用更轻量模型。上游返回: ${completion.status} ${completion.error}` }
     }

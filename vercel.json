@@ -4,9 +4,18 @@
   "outputDirectory": "dist",
   "framework": null,
   "functions": {
-    "api/chat.ts": { "maxDuration": 120 },
-    "api/review.ts": { "maxDuration": 60 },
-    "api/marketAnalysis.ts": { "maxDuration": 60 }
+    "api/chat.ts": {
+      "maxDuration": 120
+    },
+    "api/review.ts": {
+      "maxDuration": 60
+    },
+    "api/marketAnalysis.ts": {
+      "maxDuration": 60
+    },
+    "api/market.ts": {
+      "maxDuration": 30
+    }
   },
   "rewrites": [
     {

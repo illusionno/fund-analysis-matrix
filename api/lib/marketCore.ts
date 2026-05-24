@@ -1,3 +1,5 @@
+import { fetchTextWithTimeout } from "./fetchWithTimeout";
+
 export type MarketIndexSnapshot = {
   id: string;
   name: string;
@@ -21,17 +23,22 @@ const MARKET_INDEX_LIST: MarketIndexSpec[] = [
 /** 供 API 返回提示文案（与上方列表长度一致） */
 export const MARKET_INDEX_TOTAL = MARKET_INDEX_LIST.length;
 
+const MARKET_FETCH_MS = 6000;
+
+const EASTMONEY_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  Accept: "application/json, text/plain, */*",
+  Referer: "https://quote.eastmoney.com/",
+};
+
 async function fetchText(url: string): Promise<string> {
-  const r = await fetch(url, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      Accept: "application/json, text/plain, */*",
-      Referer: "https://quote.eastmoney.com/",
-    },
-  });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  return r.text();
+  return fetchTextWithTimeout(
+    url,
+    { headers: EASTMONEY_HEADERS },
+    MARKET_FETCH_MS,
+    "东方财富行情",
+  );
 }
 
 function parseKlineRow(row: string): {
@@ -88,7 +95,8 @@ async function fetchIndexSafe(
 ): Promise<MarketIndexSnapshot | null> {
   try {
     return await fetchIndex(spec);
-  } catch {
+  } catch (e) {
+    console.warn(`[marketCore] ${spec.id} failed:`, e);
     return null;
   }
 }

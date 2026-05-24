@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import type { MarketIndexSnapshot } from './lib/marketCore'
 import { parseJsonBody } from './lib/parseBody'
 import type { QuoteSnapshot } from './lib/quoteCore'
+import { formatFetchError } from './lib/fetchWithTimeout'
 import { REVIEW_DISCLAIMER, runAiReview } from './lib/reviewCore'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -58,7 +59,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       disclaimer: REVIEW_DISCLAIMER,
     })
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
-    res.status(500).json({ error: msg, disclaimer: REVIEW_DISCLAIMER })
+    console.error('[api/review]', e)
+    res.status(502).json({
+      error: formatFetchError(e, 'AI 复盘'),
+      disclaimer: REVIEW_DISCLAIMER,
+    })
   }
 }
