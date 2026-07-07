@@ -116,7 +116,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (e) {
     console.error('[api/chat]', e)
-    const msg = e instanceof Error ? e.message : String(e);
     if (res.headersSent) {
       try {
         res.end();

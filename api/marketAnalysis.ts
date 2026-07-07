@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import type { MarketIndexSnapshot } from './lib/marketCore.js'
 import { resolveMarketIndices } from './lib/marketCore.js'
 import { parseJsonBody } from './lib/parseBody.js'
 import { formatFetchError } from './lib/fetchWithTimeout.js'
