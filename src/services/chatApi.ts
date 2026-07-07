@@ -47,10 +47,11 @@ export async function streamAiChat(
   signal?: AbortSignal,
 ): Promise<void> {
   const overrides = getConfigOverrides();
-  const res = await fetch("/api/chat", {
+  const res = await fetch("/api/ai", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
+      action: "chat",
       messages,
       quotes: quotes ?? [],
       stream: true,

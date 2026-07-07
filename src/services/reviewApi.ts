@@ -31,7 +31,8 @@ export async function fetchAiReview(
   marketIndices?: MarketIndexSnapshot[],
 ): Promise<ReviewResponse> {
   try {
-    const { data } = await post<ReviewResponse>('/api/review', {
+    const { data } = await post<ReviewResponse>('/api/ai', {
+      action: 'review',
       quotes,
       marketIndices,
       ...getConfigOverrides(),
@@ -61,7 +62,8 @@ export async function fetchAiReview(
 /** 大盘 AI 分析：API 内部自行拉取最新指数数据，前端无需传入 */
 export async function fetchAiMarketAnalysis(): Promise<ReviewResponse> {
   try {
-    const { data } = await post<ReviewResponse>('/api/marketAnalysis', {
+    const { data } = await post<ReviewResponse>('/api/ai', {
+      action: 'marketAnalysis',
       ...getConfigOverrides(),
     })
     return data

@@ -109,12 +109,14 @@ export default defineConfig(({ mode }) => {
               return;
             }
 
-            if (url === "/api/chat" && req.method === "POST") {
+            if (url === "/api/ai" && req.method === "POST") {
               try {
                 const raw = await readBody(req);
                 const body = JSON.parse(raw) as {
+                  action?: string;
                   messages?: unknown;
                   quotes?: QuoteSnapshot[];
+                  marketIndices?: unknown[];
                   stream?: boolean;
                   deepThink?: boolean;
                   _apiKey?: string;
@@ -123,109 +125,273 @@ export default defineConfig(({ mode }) => {
                 };
                 const key = body._apiKey?.trim() || env.OPENAI_API_KEY;
                 if (!key) {
+                  const disclaimers: Record<string, string> = {
+                    chat: "AI 回复仅供参考，不构成投资建议。市场有风险，决策请独立判断。",
+                    review:
+                      "以上内容由大模型根据涨跌数据推测生成，不构成投资建议。市场有风险，决策请独立判断。",
+                    marketAnalysis:
+                      "以上内容由大模型根据涨跌数据推测生成，不构成投资建议。市场有风险，决策请独立判断。",
+                  };
                   res.statusCode = 503;
                   res.setHeader("Content-Type", "application/json");
                   res.end(
                     JSON.stringify({
                       error: AI_CONFIG_REQUIRED_MESSAGE,
                       disclaimer:
-                        "AI 回复仅供参考，不构成投资建议。市场有风险，决策请独立判断。",
+                        disclaimers[body.action ?? ""] ?? disclaimers.chat,
                     }),
                   );
                   return;
                 }
-                const parseTurns = (rawMsgs: unknown) => {
-                  if (!Array.isArray(rawMsgs)) return [];
-                  const out: { role: "user" | "assistant"; content: string }[] =
-                    [];
-                  for (const x of rawMsgs) {
-                    if (typeof x !== "object" || x === null) continue;
-                    const r = x as Record<string, unknown>;
-                    if (r.role !== "user" && r.role !== "assistant") continue;
-                    if (typeof r.content !== "string") continue;
-                    out.push({
-                      role: r.role,
-                      content: r.content,
-                    });
-                  }
-                  return out;
-                };
-                const messages = parseTurns(body.messages);
-                const quotes = Array.isArray(body.quotes) ? body.quotes : [];
-                const { runAiChat, streamAiChatToWriter, CHAT_DISCLAIMER } =
-                  await import("./api/lib/chatCore.ts");
+                const base =
+                  body._apiBase?.trim() || env.OPENAI_API_BASE;
+                const model =
+                  body._model?.trim() || env.OPENAI_MODEL;
 
-                if (body.stream === true) {
-                  res.setHeader(
-                    "Content-Type",
-                    "application/x-ndjson; charset=utf-8",
-                  );
-                  res.setHeader("Cache-Control", "no-cache, no-transform");
-                  res.setHeader("X-Accel-Buffering", "no");
-                  const writeLine = (obj: Record<string, unknown>) => {
-                    res.write(`${JSON.stringify(obj)}\n`);
-                  };
-                  try {
-                    await streamAiChatToWriter(
-                      messages,
-                      {
-                        apiKey: key,
-                        base: body._apiBase?.trim() || env.OPENAI_API_BASE,
-                        model: body._model?.trim() || env.OPENAI_MODEL,
-                        quotes,
-                        deepThink: body.deepThink === true,
-                      },
-                      writeLine,
-                    );
-                    writeLine({ done: true, disclaimer: CHAT_DISCLAIMER });
-                    res.statusCode = 200;
-                    res.end();
-                  } catch (streamErr) {
-                    const msg =
-                      streamErr instanceof Error
-                        ? streamErr.message
-                        : String(streamErr);
-                    if (!res.headersSent) {
-                      res.statusCode = 500;
-                      res.setHeader("Content-Type", "application/json");
-                      res.end(
-                        JSON.stringify({
-                          error: msg,
-                          disclaimer: CHAT_DISCLAIMER,
-                        }),
-                      );
-                    } else {
-                      res.write(
-                        `${JSON.stringify({ err: msg, disclaimer: CHAT_DISCLAIMER })}\n`,
-                      );
-                      res.end();
+                // ── chat ──
+                if (body.action === "chat") {
+                  const parseTurns = (rawMsgs: unknown) => {
+                    if (!Array.isArray(rawMsgs)) return [];
+                    const out: {
+                      role: "user" | "assistant";
+                      content: string;
+                    }[] = [];
+                    for (const x of rawMsgs) {
+                      if (typeof x !== "object" || x === null) continue;
+                      const r = x as Record<string, unknown>;
+                      if (r.role !== "user" && r.role !== "assistant") continue;
+                      if (typeof r.content !== "string") continue;
+                      out.push({ role: r.role, content: r.content });
                     }
-                  }
-                  return;
-                }
+                    return out;
+                  };
+                  const messages = parseTurns(body.messages);
+                  const quotes = Array.isArray(body.quotes)
+                    ? body.quotes
+                    : [];
+                  const {
+                    runAiChat,
+                    streamAiChatToWriter,
+                    CHAT_DISCLAIMER,
+                  } = await import("./api/lib/chatCore.ts");
 
-                const out = await runAiChat(messages, {
-                  apiKey: key,
-                  base: body._apiBase?.trim() || env.OPENAI_API_BASE,
-                  model: body._model?.trim() || env.OPENAI_MODEL,
-                  quotes,
-                });
-                if ("error" in out) {
-                  res.statusCode = 502;
+                  if (body.stream === true) {
+                    res.setHeader(
+                      "Content-Type",
+                      "application/x-ndjson; charset=utf-8",
+                    );
+                    res.setHeader(
+                      "Cache-Control",
+                      "no-cache, no-transform",
+                    );
+                    res.setHeader("X-Accel-Buffering", "no");
+                    const writeLine = (obj: Record<string, unknown>) => {
+                      res.write(`${JSON.stringify(obj)}\n`);
+                    };
+                    try {
+                      await streamAiChatToWriter(
+                        messages,
+                        {
+                          apiKey: key,
+                          base,
+                          model,
+                          quotes,
+                          deepThink: body.deepThink === true,
+                        },
+                        writeLine,
+                      );
+                      writeLine({
+                        done: true,
+                        disclaimer: CHAT_DISCLAIMER,
+                      });
+                      res.statusCode = 200;
+                      res.end();
+                    } catch (streamErr) {
+                      const msg =
+                        streamErr instanceof Error
+                          ? streamErr.message
+                          : String(streamErr);
+                      if (!res.headersSent) {
+                        res.statusCode = 500;
+                        res.setHeader(
+                          "Content-Type",
+                          "application/json",
+                        );
+                        res.end(
+                          JSON.stringify({
+                            error: msg,
+                            disclaimer: CHAT_DISCLAIMER,
+                          }),
+                        );
+                      } else {
+                        res.write(
+                          `${JSON.stringify({ err: msg, disclaimer: CHAT_DISCLAIMER })}\n`,
+                        );
+                        res.end();
+                      }
+                    }
+                    return;
+                  }
+
+                  const out = await runAiChat(messages, {
+                    apiKey: key,
+                    base,
+                    model,
+                    quotes,
+                  });
+                  if ("error" in out) {
+                    res.statusCode = 502;
+                    res.setHeader(
+                      "Content-Type",
+                      "application/json",
+                    );
+                    res.end(
+                      JSON.stringify({
+                        error: out.error,
+                        disclaimer: CHAT_DISCLAIMER,
+                      }),
+                    );
+                    return;
+                  }
                   res.setHeader("Content-Type", "application/json");
                   res.end(
                     JSON.stringify({
-                      error: out.error,
+                      reply: out.reply,
                       disclaimer: CHAT_DISCLAIMER,
                     }),
                   );
                   return;
                 }
+
+                // ── review ──
+                if (body.action === "review") {
+                  const quotes = Array.isArray(body.quotes)
+                    ? body.quotes
+                    : [];
+                  const marketIndicesRaw = Array.isArray(
+                    body.marketIndices,
+                  )
+                    ? (body.marketIndices as import("./api/lib/marketCore.ts").MarketIndexSnapshot[])
+                    : undefined;
+                  if (
+                    quotes.length === 0 &&
+                    (!marketIndicesRaw ||
+                      marketIndicesRaw.length === 0)
+                  ) {
+                    res.statusCode = 400;
+                    res.setHeader(
+                      "Content-Type",
+                      "application/json",
+                    );
+                    res.end(
+                      JSON.stringify({
+                        error:
+                          "quotes 与 marketIndices 不能同时为空",
+                        disclaimer:
+                          "以上内容由大模型根据涨跌数据推测生成，不构成投资建议。市场有风险，决策请独立判断。",
+                      }),
+                    );
+                    return;
+                  }
+                  const { runAiReview, REVIEW_DISCLAIMER } =
+                    await import("./api/lib/reviewCore.ts");
+                  const out = await runAiReview(
+                    quotes,
+                    marketIndicesRaw,
+                    { apiKey: key, base, model },
+                  );
+                  if ("error" in out) {
+                    res.statusCode = 502;
+                    res.setHeader(
+                      "Content-Type",
+                      "application/json",
+                    );
+                    res.end(
+                      JSON.stringify({
+                        error: out.error,
+                        disclaimer: REVIEW_DISCLAIMER,
+                      }),
+                    );
+                    return;
+                  }
+                  res.setHeader("Content-Type", "application/json");
+                  res.end(
+                    JSON.stringify({
+                      result: out.result,
+                      disclaimer: REVIEW_DISCLAIMER,
+                    }),
+                  );
+                  return;
+                }
+
+                // ── marketAnalysis ──
+                if (body.action === "marketAnalysis") {
+                  const {
+                    resolveMarketIndices: resolveIdx,
+                  } = await import(
+                    "./api/lib/marketCore.ts"
+                  );
+                  const { indices, warning } =
+                    await resolveIdx();
+
+                  if (indices.length === 0) {
+                    res.statusCode = 502;
+                    res.setHeader(
+                      "Content-Type",
+                      "application/json",
+                    );
+                    res.end(
+                      JSON.stringify({
+                        error:
+                          "大盘指数数据源暂时不可用（东方财富接口连接失败），请稍后重试。",
+                        disclaimer:
+                          "以上内容由大模型根据涨跌数据推测生成，不构成投资建议。市场有风险，决策请独立判断。",
+                      }),
+                    );
+                    return;
+                  }
+
+                  const {
+                    runAiMarketAnalysis,
+                    REVIEW_DISCLAIMER,
+                  } = await import(
+                    "./api/lib/reviewCore.ts"
+                  );
+                  const out = await runAiMarketAnalysis(
+                    indices,
+                    warning,
+                    { apiKey: key, base, model },
+                  );
+                  if ("error" in out) {
+                    res.statusCode = 502;
+                    res.setHeader(
+                      "Content-Type",
+                      "application/json",
+                    );
+                    res.end(
+                      JSON.stringify({
+                        error: out.error,
+                        disclaimer: REVIEW_DISCLAIMER,
+                      }),
+                    );
+                    return;
+                  }
+                  res.setHeader("Content-Type", "application/json");
+                  res.end(
+                    JSON.stringify({
+                      result: out.result,
+                      disclaimer: REVIEW_DISCLAIMER,
+                    }),
+                  );
+                  return;
+                }
+
+                res.statusCode = 400;
                 res.setHeader("Content-Type", "application/json");
                 res.end(
                   JSON.stringify({
-                    reply: out.reply,
-                    disclaimer: CHAT_DISCLAIMER,
+                    error:
+                      "action 须为 chat | review | marketAnalysis",
                   }),
                 );
               } catch (e) {
@@ -239,218 +405,6 @@ export default defineConfig(({ mode }) => {
                       "AI 回复仅供参考，不构成投资建议。市场有风险，决策请独立判断。",
                   }),
                 );
-              }
-              return;
-            }
-
-            if (url === "/api/review" && req.method === "POST") {
-              try {
-                const raw = await readBody(req);
-                const body = JSON.parse(raw) as {
-                  quotes?: QuoteSnapshot[];
-                  marketIndices?: unknown[];
-                  _apiKey?: string;
-                  _apiBase?: string;
-                  _model?: string;
-                };
-                const key = body._apiKey?.trim() || env.OPENAI_API_KEY;
-                if (!key) {
-                  res.statusCode = 503;
-                  res.setHeader("Content-Type", "application/json");
-                  res.end(
-                    JSON.stringify({
-                      error: AI_CONFIG_REQUIRED_MESSAGE,
-                      disclaimer:
-                        "以上内容由大模型根据涨跌数据推测生成，不构成投资建议。市场有风险，决策请独立判断。",
-                    }),
-                  );
-                  return;
-                }
-                const quotes = Array.isArray(body.quotes) ? body.quotes : [];
-                const marketIndices = Array.isArray(body.marketIndices)
-                  ? (body.marketIndices as import("./api/lib/marketCore.ts").MarketIndexSnapshot[])
-                  : undefined;
-                if (quotes.length === 0 && (!marketIndices || marketIndices.length === 0)) {
-                  res.statusCode = 400;
-                  res.setHeader("Content-Type", "application/json");
-                  res.end(
-                    JSON.stringify({
-                      error: "quotes 与 marketIndices 不能同时为空",
-                      disclaimer:
-                        "以上内容由大模型根据涨跌数据推测生成，不构成投资建议。市场有风险，决策请独立判断。",
-                    }),
-                  );
-                  return;
-                }
-                const { runAiReview, REVIEW_DISCLAIMER } =
-                  await import("./api/lib/reviewCore.ts");
-                const out = await runAiReview(
-                  quotes,
-                  marketIndices,
-                  {
-                  apiKey: key,
-                  base: body._apiBase?.trim() || env.OPENAI_API_BASE,
-                  model: body._model?.trim() || env.OPENAI_MODEL,
-                  },
-                );
-                if ("error" in out) {
-                  res.statusCode = 502;
-                  res.setHeader("Content-Type", "application/json");
-                  res.end(
-                    JSON.stringify({
-                      error: out.error,
-                      disclaimer: REVIEW_DISCLAIMER,
-                    }),
-                  );
-                  return;
-                }
-                res.setHeader("Content-Type", "application/json");
-                res.end(
-                  JSON.stringify({
-                    result: out.result,
-                    disclaimer: REVIEW_DISCLAIMER,
-                  }),
-                );
-              } catch (e) {
-                const msg = e instanceof Error ? e.message : String(e);
-                res.statusCode = 500;
-                res.setHeader("Content-Type", "application/json");
-                res.end(
-                  JSON.stringify({
-                    error: msg,
-                    disclaimer:
-                      "以上内容由大模型根据涨跌数据推测生成，不构成投资建议。市场有风险，决策请独立判断。",
-                  }),
-                );
-              }
-              return;
-            }
-
-            if (url === "/api/marketAnalysis" && req.method === "POST") {
-              try {
-                const raw = await readBody(req);
-                const body = JSON.parse(raw) as {
-                  _apiKey?: string;
-                  _apiBase?: string;
-                  _model?: string;
-                };
-                const key = body._apiKey?.trim() || env.OPENAI_API_KEY;
-                if (!key) {
-                  res.statusCode = 503;
-                  res.setHeader("Content-Type", "application/json");
-                  res.end(
-                    JSON.stringify({
-                      error: AI_CONFIG_REQUIRED_MESSAGE,
-                      disclaimer:
-                        "以上内容由大模型根据涨跌数据推测生成，不构成投资建议。市场有风险，决策请独立判断。",
-                    }),
-                  );
-                  return;
-                }
-
-                // 服务端自己拉取大盘数据，不再依赖前端传入
-                const { resolveMarketIndices: resolveIdx } =
-                  await import("./api/lib/marketCore.ts");
-                const { indices, warning } = await resolveIdx();
-
-                if (indices.length === 0) {
-                  res.statusCode = 502;
-                  res.setHeader("Content-Type", "application/json");
-                  res.end(
-                    JSON.stringify({
-                      error: "大盘指数数据源暂时不可用（东方财富接口连接失败），请稍后重试。",
-                      disclaimer:
-                        "以上内容由大模型根据涨跌数据推测生成，不构成投资建议。市场有风险，决策请独立判断。",
-                    }),
-                  );
-                  return;
-                }
-
-                const { runAiMarketAnalysis, REVIEW_DISCLAIMER } =
-                  await import("./api/lib/reviewCore.ts");
-                const out = await runAiMarketAnalysis(
-                  indices,
-                  warning,
-                  {
-                  apiKey: key,
-                  base: body._apiBase?.trim() || env.OPENAI_API_BASE,
-                  model: body._model?.trim() || env.OPENAI_MODEL,
-                  },
-                );
-                if ("error" in out) {
-                  res.statusCode = 502;
-                  res.setHeader("Content-Type", "application/json");
-                  res.end(
-                    JSON.stringify({
-                      error: out.error,
-                      disclaimer: REVIEW_DISCLAIMER,
-                    }),
-                  );
-                  return;
-                }
-                res.setHeader("Content-Type", "application/json");
-                res.end(
-                  JSON.stringify({
-                    result: out.result,
-                    disclaimer: REVIEW_DISCLAIMER,
-                  }),
-                );
-              } catch (e) {
-                const msg = e instanceof Error ? e.message : String(e);
-                res.statusCode = 500;
-                res.setHeader("Content-Type", "application/json");
-                res.end(
-                  JSON.stringify({
-                    error: msg,
-                    disclaimer:
-                      "以上内容由大模型根据涨跌数据推测生成，不构成投资建议。市场有风险，决策请独立判断。",
-                  }),
-                );
-              }
-              return;
-            }
-
-            if (url === "/api/config-test" && req.method === "POST") {
-              try {
-                const raw = await readBody(req);
-                const body = JSON.parse(raw) as {
-                  apiKey?: string;
-                  apiBase?: string;
-                  model?: string;
-                };
-                const apiKey = body.apiKey?.trim();
-                if (!apiKey) {
-                  res.statusCode = 400;
-                  res.setHeader("Content-Type", "application/json");
-                  res.end(JSON.stringify({ ok: false, error: "API Key 不能为空" }));
-                  return;
-                }
-                const base = (body.apiBase?.trim() || "https://api.openai.com/v1").replace(/\/$/, "");
-                const model = body.model?.trim() || "gpt-4o-mini";
-                const openaiRes = await fetch(`${base}/chat/completions`, {
-                  method: "POST",
-                  headers: {
-                    Authorization: `Bearer ${apiKey}`,
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    model,
-                    max_tokens: 16,
-                    messages: [{ role: "user", content: "hi" }],
-                  }),
-                });
-                res.setHeader("Content-Type", "application/json");
-                if (!openaiRes.ok) {
-                  const t = await openaiRes.text();
-                  res.end(JSON.stringify({ ok: false, error: `模型请求失败: ${openaiRes.status} ${t.slice(0, 300)}` }));
-                } else {
-                  res.end(JSON.stringify({ ok: true }));
-                }
-              } catch (e) {
-                const msg = e instanceof Error ? e.message : String(e);
-                res.statusCode = 500;
-                res.setHeader("Content-Type", "application/json");
-                res.end(JSON.stringify({ ok: false, error: `连接失败: ${msg}` }));
               }
               return;
             }
