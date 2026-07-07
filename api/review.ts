@@ -4,6 +4,7 @@ import { parseJsonBody } from './lib/parseBody.js'
 import type { QuoteSnapshot } from './lib/quoteCore.js'
 import { formatFetchError } from './lib/fetchWithTimeout.js'
 import { REVIEW_DISCLAIMER, runAiReview } from './lib/reviewCore.js'
+import { AI_CONFIG_REQUIRED_MESSAGE } from './lib/aiConfigMessages.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -20,19 +21,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return
   }
 
-  const key = process.env.OPENAI_API_KEY
-  if (!key) {
-    res.status(503).json({
-      error: '未配置 OPENAI_API_KEY',
-      disclaimer: REVIEW_DISCLAIMER,
-    })
-    return
-  }
-
   try {
     const body = parseJsonBody(req) as {
       quotes?: QuoteSnapshot[]
       marketIndices?: MarketIndexSnapshot[]
+      _apiKey?: string
+      _apiBase?: string
+      _model?: string
+    }
+
+    const key = body._apiKey?.trim() || process.env.OPENAI_API_KEY
+    if (!key) {
+      res.status(503).json({
+        error: AI_CONFIG_REQUIRED_MESSAGE,
+        disclaimer: REVIEW_DISCLAIMER,
+      })
+      return
     }
     const quotes = body.quotes ?? []
     const marketIndices = Array.isArray(body.marketIndices) ? body.marketIndices : undefined
@@ -45,8 +49,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const out = await runAiReview(quotes, marketIndices, {
       apiKey: key,
-      base: process.env.OPENAI_API_BASE,
-      model: process.env.OPENAI_MODEL,
+      base: body._apiBase?.trim() || process.env.OPENAI_API_BASE,
+      model: body._model?.trim() || process.env.OPENAI_MODEL,
     })
 
     if ('error' in out) {

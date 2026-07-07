@@ -90,19 +90,25 @@ export async function runAiChat(
   const base = opts.base?.replace(/\/$/, "") ?? "https://api.openai.com/v1";
   const model = opts.model ?? "gpt-4o-mini";
 
-  const openaiRes = await fetch(`${base}/chat/completions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${opts.apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.55,
-      max_tokens: 2048,
-      messages: built.messages,
-    }),
-  });
+  let openaiRes: Response;
+  try {
+    openaiRes = await fetch(`${base}/chat/completions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${opts.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.55,
+        max_tokens: 2048,
+        messages: built.messages,
+      }),
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { error: `上游模型连接失败（请检查 API Base URL 是否可从部署环境访问）: ${msg}` };
+  }
 
   if (!openaiRes.ok) {
     const t = await openaiRes.text();

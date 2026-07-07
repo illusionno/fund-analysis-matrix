@@ -122,6 +122,37 @@
 .fm-shell--dark .fm-header__theme-switch {
   background: rgba(255, 248, 240, 0.08);
 }
+
+/* 配置按钮 + 状态圆点 */
+.fm-header__config-btn {
+  position: relative;
+  border-radius: 10px !important;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.fm-header__config-icon-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fm-header__config-dot {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #d4a574;
+  transition: background-color 0.3s ease;
+}
+
+.is-configured .fm-header__config-dot {
+  background: #609b71;
+}
 .fm-particle-canvas {
   position: fixed;
   top: 0;

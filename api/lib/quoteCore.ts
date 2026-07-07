@@ -33,12 +33,24 @@ function toSecid(code6: string): string {
   return `0.${c}`;
 }
 
-async function fetchText(url: string): Promise<string> {
-  const r = await fetch(url, {
-    headers: { "User-Agent": "Mozilla/5.0 FundMatrix/1.0" },
-  });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  return r.text();
+import { fetchTextWithTimeout } from "./fetchWithTimeout.js";
+
+const QUOTE_FETCH_MS = 8000;
+
+const EASTMONEY_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  Accept: "application/json, text/plain, */*",
+  Referer: "https://quote.eastmoney.com/",
+};
+
+async function fetchText(url: string, timeoutMs = QUOTE_FETCH_MS): Promise<string> {
+  return fetchTextWithTimeout(
+    url,
+    { headers: { "User-Agent": "Mozilla/5.0 FundMatrix/1.0" } },
+    timeoutMs,
+    "行情数据",
+  );
 }
 
 async function fetchFundQuote(code: string): Promise<QuoteSnapshot> {
@@ -95,7 +107,13 @@ async function fetchStockLike(
       // 东方财富返回的 K 线数据是一串逗号分隔的字符串，这里的 f51~f61 代表日期、开盘、收盘、最高、最低、成交量、成交额、振幅、涨跌幅等
       ut: "fa5fd1943c7b386f172d6893dbfba10b", // 东方财富接口常用的“通配”鉴权 Token
     });
-  const kText = await fetchText(kUrl);
+  // 东方财富需要浏览器风格 Header，否则容易被拦截
+  const kText = await fetchTextWithTimeout(
+    kUrl,
+    { headers: EASTMONEY_HEADERS },
+    QUOTE_FETCH_MS,
+    "东方财富K线",
+  );
   const kJson = JSON.parse(kText) as {
     data?: { klines?: string[]; name?: string; code?: string };
   };
@@ -158,7 +176,13 @@ export async function resolveQuotes(
   const out: QuoteSnapshot[] = [];
   // 采用串行解析方式，防止并发请求过多导致东方财富/天天基金接口被封禁
   for (const it of items) {
-    out.push(await resolveQuoteItem(it));
+    try {
+      out.push(await resolveQuoteItem(it));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.warn(`[quoteCore] ${it.kind} ${it.code} 获取失败:`, msg);
+      // 单个标的失败不影响其他标的，继续处理下一个
+    }
   }
   return out;
 }

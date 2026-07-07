@@ -2,7 +2,12 @@ import axios from 'axios'
 import type { MarketIndexSnapshot } from '../types/market'
 import { get } from './request'
 
-export async function fetchMarketIndices(): Promise<MarketIndexSnapshot[]> {
+export type MarketResult = {
+  indices: MarketIndexSnapshot[]
+  warning?: string
+}
+
+export async function fetchMarketIndices(): Promise<MarketResult> {
   try {
     const { data } = await get<{
       indices?: MarketIndexSnapshot[]
@@ -13,15 +18,11 @@ export async function fetchMarketIndices(): Promise<MarketIndexSnapshot[]> {
     if (data.warning) {
       console.warn('[market]', data.warning)
     }
-    return data.indices ?? []
+    return { indices: data.indices ?? [], warning: data.warning }
   } catch (e) {
     if (axios.isAxiosError(e) && e.response?.data && typeof e.response.data === 'object') {
       const d = e.response.data as { error?: string; warning?: string; indices?: MarketIndexSnapshot[] }
-      if (Array.isArray(d.indices)) return d.indices
-      if (d.warning) {
-        console.warn('[market]', d.warning)
-        return d.indices ?? []
-      }
+      if (Array.isArray(d.indices)) return { indices: d.indices, warning: d.warning }
       if (d.error) throw new Error(d.error)
     }
     throw e

@@ -66,34 +66,44 @@ async function requestChatCompletion(
 }
 
 export async function runAiMarketAnalysis(
-  marketIndices: MarketIndexSnapshot[] | undefined,
+  marketIndices: MarketIndexSnapshot[],
+  dataWarning: string | undefined,
   opts: ReviewOptions,
 ): Promise<{ result: string } | { error: string }> {
   const base = opts.base?.replace(/\/$/, '') ?? 'https://api.openai.com/v1'
   const model = opts.model ?? 'gpt-4o-mini'
 
-  const marketLines = (marketIndices ?? []).map(
+  const marketLines = marketIndices.map(
     (m) =>
       `- ${m.name}（${m.id}）点位 ${m.price.toFixed(2)}，今日涨跌 ${m.changePctDay.toFixed(2)}%，时间 ${m.asOf}`,
   )
 
   const date = new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
 
-  const userPrompt = `你是一位资深宏观经济与A股策略分析师，请对${date}的A股市场板块涨跌情况进行全面分析，要求包含以下内容：
+  const dataNote = dataWarning
+    ? `\n注意：以下数据可能不完整——${dataWarning}\n`
+    : ''
 
-1. 大盘指数概况（上证、深成指、创业板指、科创50等主要指数的涨跌幅及全天成交额走势）；
-2. 涨幅居前的3-5个板块方向，及各自的驱动逻辑（需引用当日具体事件或机构观点）；
-3. 跌幅居前的3-5个板块方向，及下挫的核心原因分析；
-4. 板块轮动的核心矛盾与资金特征（量能变化、风格偏好、行业性价比变化等）；
-5. 提取1-2家国内头部券商（如中信建投、光大、银河等）的最新策略观点，与当日盘面相互印证；
-6. 给出后市展望与主要风险提示。
+  const userPrompt = `你是一位资深宏观策略分析师，请根据以下${date}的A股主要指数涨跌数据，做一份客观的市场复盘分析。
 
-请以专业、客观、数据翔实的风格输出，分析中需标注有据可查的具体数据（如成交额、涨跌幅、具体个股等），避免主观臆测。分析仅供市场复盘参考，文末需标注"本文不构成投资建议"。
-
-这是今日大盘的基础数据：
+【可用数据】
 ${marketLines.join('\n')}
+${dataNote}
+【分析要求】
+基于上述指数数据（仅包含上证、深成指、创业板指三个宽基指数及其涨跌幅），进行合理推断：
 
-请直接输出 Markdown 格式的分析报告（不要使用 \`\`\` 代码块包裹全文；不要用 HTML 标签）。`;
+1. **整体市场概况**：根据三个指数的涨跌方向和幅度，概括今日市场整体强弱。如果指数之间分化明显（如上证涨而创业板跌），说明结构分化特征。
+2. **风格推断**：从指数分化中推断今日市场风格偏好（例如：上证偏强→价值/大盘风格占优；创业板偏强→成长/小盘风格占优）。使用"可能""或反映""不排除"等措辞。
+3. **驱动因素推测**：结合指数特征推测可能的驱动逻辑（例如：上证偏强可能与高股息/国企相关；创业板偏弱可能与成长股估值压力有关）。避免编造具体新闻事件。
+4. **风险提示**：指出当前分化或同向波动中值得关注的短期风险。
+5. **后市展望**：基于指数表现给出简明市场展望。
+
+【输出规范】
+- 严格基于数据做推断，使用"可能""或受""不排除""数据反映"等措辞
+- 禁止编造具体新闻标题、政策文件名称、券商报告结论
+- 禁止编造板块涨跌排名、成交量数据、个股行情
+- 直接输出 Markdown 格式（不要用代码块包裹全文）
+- 文末标注"本文基于有限指数数据由 AI 生成，不构成投资建议"`;
 
   const requestBody = {
     model,

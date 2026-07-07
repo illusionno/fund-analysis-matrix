@@ -17,7 +17,9 @@ import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { streamAiChat, type ChatTurn } from "../services/chatApi";
+import { useConfig } from "../store/configStore";
 import type { QuoteSnapshot } from "../types/quote";
+import { AI_CONFIG_REQUIRED_MESSAGE } from "../../api/lib/aiConfigMessages";
 import mdStyles from "./AiChatMarkdown.module.scss";
 
 type UiMessage = {
@@ -189,6 +191,11 @@ const AiChatModal = ({ quotes = [] }: AiChatModalProps) => {
   const handleSend = async () => {
     const text = input.trim();
     if (!text) return;
+
+    if (!useConfig.getState().isConfigured()) {
+      message.warning(AI_CONFIG_REQUIRED_MESSAGE);
+      return;
+    }
 
     // 正在生成时再次发送：先中止当前流，再发新的一条
     if (loading) {

@@ -15,6 +15,9 @@
     },
     "api/market.ts": {
       "maxDuration": 30
+    },
+    "api/config-test.ts": {
+      "maxDuration": 30
     }
   },
   "rewrites": [

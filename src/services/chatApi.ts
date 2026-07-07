@@ -16,6 +16,25 @@ export type StreamNdjson = {
   disclaimer?: string;
 };
 
+function getConfigOverrides() {
+  try {
+    // 动态 import 避免循环依赖；zustand persist 在 SSR 时可能不存在
+    const raw = localStorage.getItem("fund-matrix-ai-config");
+    if (!raw) return {};
+    const j = JSON.parse(raw) as {
+      state?: { apiKey?: string; apiBase?: string; model?: string };
+    };
+    const s = j.state ?? {};
+    return {
+      _apiKey: s.apiKey?.trim() || undefined,
+      _apiBase: s.apiBase?.trim() || undefined,
+      _model: s.model?.trim() || undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
 /**
  * 流式对话：服务端 NDJSON，每行一个 JSON。
  * 字段：`d` 正文增量、`r` 模型 reasoning 增量（若接口提供）、`err` 错误、`done` 结束。
@@ -27,6 +46,7 @@ export async function streamAiChat(
   onChunk: (line: StreamNdjson) => void,
   signal?: AbortSignal,
 ): Promise<void> {
+  const overrides = getConfigOverrides();
   const res = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -35,6 +55,7 @@ export async function streamAiChat(
       quotes: quotes ?? [],
       stream: true,
       deepThink,
+      ...overrides,
     }),
     signal,
   });

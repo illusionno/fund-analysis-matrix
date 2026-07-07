@@ -1,12 +1,14 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import type { QuoteSnapshot } from "./lib/quoteCore.js";
 import { parseJsonBody } from "./lib/parseBody.js";
+import { formatFetchError } from "./lib/fetchWithTimeout.js";
 import {
   CHAT_DISCLAIMER,
   runAiChat,
   streamAiChatToWriter,
   type ChatTurn,
 } from "./lib/chatCore.js";
+import { AI_CONFIG_REQUIRED_MESSAGE } from "./lib/aiConfigMessages.js";
 
 function parseTurns(raw: unknown): ChatTurn[] {
   if (!Array.isArray(raw)) return [];
@@ -38,22 +40,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) {
-    res.status(503).json({
-      error: "未配置 OPENAI_API_KEY",
-      disclaimer: CHAT_DISCLAIMER,
-    });
-    return;
-  }
-
   try {
     const body = parseJsonBody(req) as {
       messages?: unknown;
       quotes?: QuoteSnapshot[];
       stream?: unknown;
       deepThink?: unknown;
+      _apiKey?: string;
+      _apiBase?: string;
+      _model?: string;
     };
+
+    const key = body._apiKey?.trim() || process.env.OPENAI_API_KEY;
+    if (!key) {
+      res.status(503).json({
+        error: AI_CONFIG_REQUIRED_MESSAGE,
+        disclaimer: CHAT_DISCLAIMER,
+      });
+      return;
+    }
     const messages = parseTurns(body.messages);
     const quotes = Array.isArray(body.quotes) ? body.quotes : [];
     const stream = body.stream === true;
@@ -75,8 +80,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           messages,
           {
             apiKey: key,
-            base: process.env.OPENAI_API_BASE,
-            model: process.env.OPENAI_MODEL,
+            base: body._apiBase?.trim() || process.env.OPENAI_API_BASE,
+            model: body._model?.trim() || process.env.OPENAI_MODEL,
             quotes,
             deepThink,
           },
@@ -95,8 +100,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 非流式请求（会一次性返回全部结果）
     const out = await runAiChat(messages, {
       apiKey: key,
-      base: process.env.OPENAI_API_BASE,
-      model: process.env.OPENAI_MODEL,
+      base: body._apiBase?.trim() || process.env.OPENAI_API_BASE,
+      model: body._model?.trim() || process.env.OPENAI_MODEL,
       quotes,
     });
 
@@ -110,6 +115,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       disclaimer: CHAT_DISCLAIMER,
     });
   } catch (e) {
+    console.error('[api/chat]', e)
     const msg = e instanceof Error ? e.message : String(e);
     if (res.headersSent) {
       try {
@@ -119,6 +125,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       return;
     }
-    res.status(500).json({ error: msg, disclaimer: CHAT_DISCLAIMER });
+    res.status(502).json({ error: formatFetchError(e, 'AI 对话'), disclaimer: CHAT_DISCLAIMER });
   }
 }

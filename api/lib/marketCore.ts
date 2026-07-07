@@ -101,9 +101,26 @@ async function fetchIndexSafe(
   }
 }
 
-export async function resolveMarketIndices(): Promise<MarketIndexSnapshot[]> {
+export async function resolveMarketIndices(): Promise<{
+  indices: MarketIndexSnapshot[];
+  warning?: string;
+}> {
   const rows = await Promise.all(
     MARKET_INDEX_LIST.map((spec) => fetchIndexSafe(spec)),
   );
-  return rows.filter((x): x is MarketIndexSnapshot => x !== null);
+  const indices = rows.filter((x): x is MarketIndexSnapshot => x !== null);
+  const failedCount = MARKET_INDEX_LIST.length - indices.length;
+  if (failedCount === MARKET_INDEX_LIST.length) {
+    return {
+      indices: [],
+      warning: "大盘指数数据源暂时不可用（东方财富接口连接失败），请稍后刷新重试。基金自选复盘不受影响。",
+    };
+  }
+  if (failedCount > 0) {
+    return {
+      indices,
+      warning: `${failedCount}/${MARKET_INDEX_LIST.length} 路大盘指数获取失败，分析可能不完整。`,
+    };
+  }
+  return { indices };
 }

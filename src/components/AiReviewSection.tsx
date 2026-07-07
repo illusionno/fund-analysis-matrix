@@ -2,11 +2,14 @@ import {
   AppstoreOutlined,
   BarChartOutlined,
   LinkOutlined,
+  ReloadOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
-import { Alert, Button, Card, List, Space, Spin, Tag, Typography, Tabs } from "antd";
+import { Alert, Button, Card, List, Space, Spin, Tag, Typography, Tabs, Tooltip } from "antd";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AI_CONFIG_REQUIRED_MESSAGE } from "../../api/lib/aiConfigMessages";
 import { fetchAiReview, fetchAiMarketAnalysis } from "../services/reviewApi";
+import { useConfig } from "../store/configStore";
 import type { MarketIndexSnapshot } from "../types/market";
 import type { QuoteSnapshot } from "../types/quote";
 import type { Components } from "react-markdown";
@@ -173,12 +176,14 @@ type AiReviewSectionProps = {
   quotes: QuoteSnapshot[];
   marketIndices?: MarketIndexSnapshot[];
   onMarketBriefChange?: (text: string | null) => void;
+  onOpenConfig?: () => void;
 };
 
 export function AiReviewSection({
   quotes,
   marketIndices,
   onMarketBriefChange,
+  onOpenConfig,
 }: AiReviewSectionProps) {
   const [activeTab, setActiveTab] = useState<"market" | "portfolio">("market");
   
@@ -194,12 +199,17 @@ export function AiReviewSection({
   const [errorMarket, setErrorMarket] = useState<string | null>(null);
   const [disclaimerMarket, setDisclaimerMarket] = useState<string | null>(null);
   const [resultMarket, setResultMarket] = useState<string | null>(null);
-  const lastAutoRunKeyMarketRef = useRef<string>("");
+
+  const aiConfigured = useConfig((s) => s.isConfigured());
 
   const hasQuotes = quotes.length > 0;
   const hasMarket = (marketIndices?.length ?? 0) > 0;
 
   const runPortfolio = useCallback(async () => {
+    if (!aiConfigured) {
+      setErrorPortfolio(AI_CONFIG_REQUIRED_MESSAGE);
+      return;
+    }
     if (!hasQuotes && !hasMarket) return;
     setLoadingPortfolio(true);
     setErrorPortfolio(null);
@@ -225,16 +235,20 @@ export function AiReviewSection({
     } finally {
       setLoadingPortfolio(false);
     }
-  }, [hasQuotes, hasMarket, marketIndices, onMarketBriefChange, quotes]);
+  }, [aiConfigured, hasQuotes, hasMarket, marketIndices, onMarketBriefChange, quotes]);
 
+  /** 大盘 AI 分析：API 内部自行拉取指数数据，前端只需触发调用 */
   const runMarket = useCallback(async () => {
-    if (!hasMarket) return;
+    if (!aiConfigured) {
+      setErrorMarket(AI_CONFIG_REQUIRED_MESSAGE);
+      return;
+    }
     setLoadingMarket(true);
     setErrorMarket(null);
     setDisclaimerMarket(null);
     setResultMarket(null);
     try {
-      const data = await fetchAiMarketAnalysis(marketIndices);
+      const data = await fetchAiMarketAnalysis();
       if (data.error) {
         setErrorMarket(data.error);
         setDisclaimerMarket(data.disclaimer ?? null);
@@ -247,7 +261,7 @@ export function AiReviewSection({
     } finally {
       setLoadingMarket(false);
     }
-  }, [hasMarket, marketIndices]);
+  }, [aiConfigured]);
 
   const items = parseItems(resultPortfolio);
   const summary = summaryText(resultPortfolio);
@@ -271,28 +285,39 @@ export function AiReviewSection({
 
   // 当自选列表或大盘数据加载完毕后，自动触发自选复盘的生成
   useEffect(() => {
+    if (!aiConfigured) return;
     if (!hasQuotes && !hasMarket) return;
     if (autoRunKeyPortfolio === lastAutoRunKeyPortfolioRef.current) return;
     lastAutoRunKeyPortfolioRef.current = autoRunKeyPortfolio;
     void runPortfolio();
-  }, [autoRunKeyPortfolio, hasQuotes, hasMarket, runPortfolio]);
+  }, [aiConfigured, autoRunKeyPortfolio, hasQuotes, hasMarket, runPortfolio]);
 
-  const autoRunKeyMarket = useMemo(() => {
-    return (marketIndices ?? [])
-      .map((x) => `${x.id}:${x.changePctDay}:${x.asOf}`)
-      .join("|");
-  }, [marketIndices]);
-
-  // 当大盘数据加载完毕后，自动触发大盘分析的生成
+  // 挂载后自动触发大盘 AI 分析（API 内部自行拉取数据）
   useEffect(() => {
-    if (!hasMarket) return;
-    if (autoRunKeyMarket === lastAutoRunKeyMarketRef.current) return;
-    lastAutoRunKeyMarketRef.current = autoRunKeyMarket;
+    if (!aiConfigured) return;
     void runMarket();
-  }, [autoRunKeyMarket, hasMarket, runMarket]);
+  }, [aiConfigured, runMarket]);
+
+  const configRequiredAlert = !aiConfigured ? (
+    <Alert
+      type="info"
+      showIcon
+      message="需要配置 AI 才能使用复盘功能"
+      description={AI_CONFIG_REQUIRED_MESSAGE}
+      style={{ marginBottom: 12 }}
+      action={
+        onOpenConfig ? (
+          <Button size="small" type="primary" onClick={onOpenConfig}>
+            去配置
+          </Button>
+        ) : undefined
+      }
+    />
+  ) : null;
 
   const renderPortfolioTab = () => (
     <Spin spinning={loadingPortfolio} tip="分析中…">
+      {configRequiredAlert}
       {errorPortfolio ? (
         <Alert
           type="warning"
@@ -424,6 +449,22 @@ export function AiReviewSection({
 
   const renderMarketTab = () => (
     <Spin spinning={loadingMarket} tip="生成大盘分析中…">
+      {configRequiredAlert}
+      {!hasMarket && !loadingMarket && !resultMarket ? (
+        <Alert
+          type="info"
+          showIcon
+          message="大盘指数数据暂不可用"
+          description="东方财富行情接口当前无法连接（可能限流或网络波动），请稍后刷新页面重试。基金自选复盘不受影响。"
+          style={{ marginBottom: 12 }}
+          action={
+            <Button size="small" onClick={() => window.location.reload()}>
+              刷新页面
+            </Button>
+          }
+        />
+      ) : null}
+
       {errorMarket ? (
         <Alert
           type="warning"
@@ -470,17 +511,27 @@ export function AiReviewSection({
         </Space>
       }
       extra={
-        <Button
-          className="fm-review-btn"
-          loading={activeTab === "market" ? loadingMarket : loadingPortfolio}
-          disabled={activeTab === "market" ? !hasMarket : (!hasQuotes && !hasMarket)}
-          onClick={() => {
-            if (activeTab === "market") void runMarket();
-            else void runPortfolio();
-          }}
+        <Tooltip
+          title={
+            activeTab === "market"
+              ? ""
+              : !hasQuotes && !hasMarket
+                ? "请先添加自选标的或等待大盘数据加载"
+                : ""
+          }
         >
-          重新生成
-        </Button>
+          <Button
+            className="fm-review-btn"
+            loading={activeTab === "market" ? loadingMarket : loadingPortfolio}
+            disabled={activeTab === "market" ? false : (!hasQuotes && !hasMarket)}
+            onClick={() => {
+              if (activeTab === "market") void runMarket();
+              else void runPortfolio();
+            }}
+          >
+            重新生成
+          </Button>
+        </Tooltip>
       }
     >
       <Tabs

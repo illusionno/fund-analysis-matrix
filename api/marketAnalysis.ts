@@ -1,9 +1,10 @@
-
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import type { MarketIndexSnapshot } from './lib/marketCore.js'
+import { resolveMarketIndices } from './lib/marketCore.js'
 import { parseJsonBody } from './lib/parseBody.js'
 import { formatFetchError } from './lib/fetchWithTimeout.js'
 import { REVIEW_DISCLAIMER, runAiMarketAnalysis } from './lib/reviewCore.js'
+import { AI_CONFIG_REQUIRED_MESSAGE } from './lib/aiConfigMessages.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -20,31 +21,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return
   }
 
-  const key = process.env.OPENAI_API_KEY
-  if (!key) {
-    res.status(503).json({
-      error: '未配置 OPENAI_API_KEY',
-      disclaimer: REVIEW_DISCLAIMER,
-    })
-    return
-  }
-
   try {
     const body = parseJsonBody(req) as {
-      marketIndices?: MarketIndexSnapshot[]
+      _apiKey?: string
+      _apiBase?: string
+      _model?: string
     }
-    const marketIndices = Array.isArray(body.marketIndices) ? body.marketIndices : undefined
-    const hasMarket = Array.isArray(marketIndices) && marketIndices.length > 0
 
-    if (!hasMarket) {
-      res.status(400).json({ error: 'marketIndices 不能为空', disclaimer: REVIEW_DISCLAIMER })
+    const key = body._apiKey?.trim() || process.env.OPENAI_API_KEY
+    if (!key) {
+      res.status(503).json({
+        error: AI_CONFIG_REQUIRED_MESSAGE,
+        disclaimer: REVIEW_DISCLAIMER,
+      })
       return
     }
 
-    const out = await runAiMarketAnalysis(marketIndices, {
+    // 服务端自己拉取最新大盘数据，不再依赖前端传入
+    const { indices, warning } = await resolveMarketIndices()
+
+    if (indices.length === 0) {
+      res.status(502).json({
+        error: '大盘指数数据源暂时不可用（东方财富接口连接失败），请稍后重试。',
+        disclaimer: REVIEW_DISCLAIMER,
+      })
+      return
+    }
+
+    const out = await runAiMarketAnalysis(indices, warning, {
       apiKey: key,
-      base: process.env.OPENAI_API_BASE,
-      model: process.env.OPENAI_MODEL,
+      base: body._apiBase?.trim() || process.env.OPENAI_API_BASE,
+      model: body._model?.trim() || process.env.OPENAI_MODEL,
     })
 
     if ('error' in out) {

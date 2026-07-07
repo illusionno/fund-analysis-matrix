@@ -8,6 +8,24 @@ export type ReviewResponse = {
   error?: string
 }
 
+function getConfigOverrides() {
+  try {
+    const raw = localStorage.getItem("fund-matrix-ai-config");
+    if (!raw) return {};
+    const j = JSON.parse(raw) as {
+      state?: { apiKey?: string; apiBase?: string; model?: string };
+    };
+    const s = j.state ?? {};
+    return {
+      _apiKey: s.apiKey?.trim() || undefined,
+      _apiBase: s.apiBase?.trim() || undefined,
+      _model: s.model?.trim() || undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
 export async function fetchAiReview(
   quotes: QuoteSnapshot[],
   marketIndices?: MarketIndexSnapshot[],
@@ -16,6 +34,7 @@ export async function fetchAiReview(
     const { data } = await post<ReviewResponse>('/api/review', {
       quotes,
       marketIndices,
+      ...getConfigOverrides(),
     })
     return data
   } catch (e) {
@@ -39,12 +58,11 @@ export async function fetchAiReview(
   }
 }
 
-export async function fetchAiMarketAnalysis(
-  marketIndices?: MarketIndexSnapshot[],
-): Promise<ReviewResponse> {
+/** 大盘 AI 分析：API 内部自行拉取最新指数数据，前端无需传入 */
+export async function fetchAiMarketAnalysis(): Promise<ReviewResponse> {
   try {
     const { data } = await post<ReviewResponse>('/api/marketAnalysis', {
-      marketIndices,
+      ...getConfigOverrides(),
     })
     return data
   } catch (e) {

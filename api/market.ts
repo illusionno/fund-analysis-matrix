@@ -1,12 +1,11 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { formatFetchError } from "./lib/fetchWithTimeout.js";
 import {
-  MARKET_INDEX_TOTAL,
   resolveMarketIndices,
+  MARKET_INDEX_TOTAL,
 } from "./lib/marketCore.js";
 
-const EMPTY_WARNING =
-  "大盘指数行情暂不可用（上游可能对境外/机房 IP 有限制，或请求超时）。可稍后重试。";
+const EMPTY_WARNING = `大盘指数数据源暂时不可用（东方财富接口连接失败），已尝试获取 ${MARKET_INDEX_TOTAL} 路指数均未成功，请稍后刷新重试。基金自选复盘不受影响。`;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -24,16 +23,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const indices = await resolveMarketIndices();
+    const { indices, warning } = await resolveMarketIndices();
     const payload: {
       indices: typeof indices;
       warning?: string;
-    } = { indices };
-    if (indices.length === 0) {
-      payload.warning = EMPTY_WARNING;
-    } else if (indices.length < MARKET_INDEX_TOTAL) {
-      payload.warning = `部分指数行情未返回（${indices.length}/${MARKET_INDEX_TOTAL}），可能与网络或数据源限制有关。`;
-    }
+    } = { indices, warning };
     res.status(200).json(payload);
   } catch (e) {
     console.error("[api/market]", e);

@@ -1,8 +1,10 @@
-import { App as AntdApp, ConfigProvider } from "antd";
+import { App as AntdApp, Button, ConfigProvider } from "antd";
 import zhCN from "antd/locale/zh_CN";
 import { useEffect, useState, useRef } from "react";
+import { AI_CONFIG_REQUIRED_MESSAGE } from "../api/lib/aiConfigMessages";
 import { AddInstrumentBar } from "./components/AddInstrumentBar";
 import { AiReviewSection } from "./components/AiReviewSection";
+import { ConfigDrawer } from "./components/ConfigDrawer";
 import { Header } from "./components/Header";
 import { QuoteBoard } from "./components/QuoteBoard";
 import { fetchMarketIndices } from "./services/marketApi";
@@ -11,6 +13,7 @@ import AiChatModal from "./components/AiChatModal";
 import type { MarketIndexSnapshot } from "./types/market";
 import type { QuoteSnapshot } from "./types/quote";
 import { getAntdTheme } from "./theme/themeConfig";
+import { useConfig } from "./store/configStore";
 
 const THEME_KEY = "fund-matrix-theme";
 
@@ -19,7 +22,7 @@ function readInitialDark(): boolean {
   const s = localStorage.getItem(THEME_KEY);
   if (s === "light") return false;
   if (s === "dark") return true;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  return true;
 }
 // 粒子背景（亮色减弱对比，避免喧宾夺主）
 function ParticleCanvas({ isDark }: { isDark: boolean }) {
@@ -126,10 +129,35 @@ function ParticleCanvas({ isDark }: { isDark: boolean }) {
   return <canvas ref={canvasRef} className="fm-particle-canvas" />;
 }
 
+function ConfigOnLoadNotice({ onOpenConfig }: { onOpenConfig: () => void }) {
+  const { message } = AntdApp.useApp();
+  const isConfigured = useConfig((s) => s.isConfigured());
+  const shownRef = useRef(false);
+
+  useEffect(() => {
+    if (isConfigured || shownRef.current) return;
+    shownRef.current = true;
+    message.warning({
+      content: (
+        <span>
+          {AI_CONFIG_REQUIRED_MESSAGE}{" "}
+          <Button type="link" size="small" onClick={onOpenConfig} style={{ padding: 0, height: "auto" }}>
+            立即配置
+          </Button>
+        </span>
+      ),
+      duration: 8,
+    });
+  }, [isConfigured, message, onOpenConfig]);
+
+  return null;
+}
+
 export default function App() {
   const [quotes, setQuotes] = useState<QuoteSnapshot[]>([]);
   const [marketIndices, setMarketIndices] = useState<MarketIndexSnapshot[]>([]);
   const [isDark, setIsDark] = useState(readInitialDark);
+  const [configOpen, setConfigOpen] = useState(false);
 
   useEffect(() => {
     localStorage.setItem(THEME_KEY, isDark ? "dark" : "light");
@@ -143,8 +171,13 @@ export default function App() {
     let mounted = true;
     const loadMarket = async () => {
       try {
-        const indices = await fetchMarketIndices();
-        if (mounted) setMarketIndices(indices);
+        const result = await fetchMarketIndices();
+        if (mounted) {
+          setMarketIndices(result.indices);
+          if (result.warning) {
+            console.warn('[App] market warning:', result.warning);
+          }
+        }
       } catch {
         if (mounted) setMarketIndices([]);
       }
@@ -159,19 +192,29 @@ export default function App() {
     <ConfigProvider theme={getAntdTheme(isDark)} locale={zhCN}>
       <ThemeContext.Provider value={isDark}>
         <AntdApp>
+          <ConfigOnLoadNotice onOpenConfig={() => setConfigOpen(true)} />
           <div
             className={`fm-shell ${isDark ? "fm-shell--dark" : "fm-shell--light"}`}
           >
             <ParticleCanvas isDark={isDark} />
-            <Header isDark={isDark} onThemeChange={setIsDark} />
+            <Header
+              isDark={isDark}
+              onThemeChange={setIsDark}
+              onConfigClick={() => setConfigOpen(true)}
+            />
             <main className="fm-main" style={{ zIndex: 1 }}>
               <AddInstrumentBar quotes={quotes} />
               <QuoteBoard quotes={quotes} onQuotesChange={setQuotes} />
               <AiReviewSection
                 quotes={quotes}
                 marketIndices={marketIndices}
+                onOpenConfig={() => setConfigOpen(true)}
               />
               <AiChatModal quotes={quotes} />
+              <ConfigDrawer
+                open={configOpen}
+                onClose={() => setConfigOpen(false)}
+              />
             </main>
             <footer className="fm-footer">
               FundMatrix · 基金股票黄金每日复盘 · by 白桃与猫

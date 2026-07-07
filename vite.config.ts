@@ -1,4 +1,5 @@
 import type { QuoteItemInput, QuoteSnapshot } from "./api/lib/quoteCore";
+import { AI_CONFIG_REQUIRED_MESSAGE } from "./api/lib/aiConfigMessages";
 import react from "@vitejs/plugin-react";
 import type { IncomingMessage } from "node:http";
 import { defineConfig, loadEnv } from "vite";
@@ -57,9 +58,9 @@ export default defineConfig(({ mode }) => {
               try {
                 const { resolveMarketIndices } =
                   await import("./api/lib/marketCore.ts");
-                const indices = await resolveMarketIndices();
+                const { indices, warning } = await resolveMarketIndices();
                 res.setHeader("Content-Type", "application/json");
-                res.end(JSON.stringify({ indices }));
+                res.end(JSON.stringify({ indices, ...(warning ? { warning } : {}) }));
               } catch (e) {
                 const msg = e instanceof Error ? e.message : String(e);
                 res.statusCode = 500;
@@ -109,19 +110,6 @@ export default defineConfig(({ mode }) => {
             }
 
             if (url === "/api/chat" && req.method === "POST") {
-              const key = env.OPENAI_API_KEY;
-              if (!key) {
-                res.statusCode = 503;
-                res.setHeader("Content-Type", "application/json");
-                res.end(
-                  JSON.stringify({
-                    error: "未配置 OPENAI_API_KEY（可在 .env.local 中设置）",
-                    disclaimer:
-                      "AI 回复仅供参考，不构成投资建议。市场有风险，决策请独立判断。",
-                  }),
-                );
-                return;
-              }
               try {
                 const raw = await readBody(req);
                 const body = JSON.parse(raw) as {
@@ -129,7 +117,23 @@ export default defineConfig(({ mode }) => {
                   quotes?: QuoteSnapshot[];
                   stream?: boolean;
                   deepThink?: boolean;
+                  _apiKey?: string;
+                  _apiBase?: string;
+                  _model?: string;
                 };
+                const key = body._apiKey?.trim() || env.OPENAI_API_KEY;
+                if (!key) {
+                  res.statusCode = 503;
+                  res.setHeader("Content-Type", "application/json");
+                  res.end(
+                    JSON.stringify({
+                      error: AI_CONFIG_REQUIRED_MESSAGE,
+                      disclaimer:
+                        "AI 回复仅供参考，不构成投资建议。市场有风险，决策请独立判断。",
+                    }),
+                  );
+                  return;
+                }
                 const parseTurns = (rawMsgs: unknown) => {
                   if (!Array.isArray(rawMsgs)) return [];
                   const out: { role: "user" | "assistant"; content: string }[] =
@@ -166,8 +170,8 @@ export default defineConfig(({ mode }) => {
                       messages,
                       {
                         apiKey: key,
-                        base: env.OPENAI_API_BASE,
-                        model: env.OPENAI_MODEL,
+                        base: body._apiBase?.trim() || env.OPENAI_API_BASE,
+                        model: body._model?.trim() || env.OPENAI_MODEL,
                         quotes,
                         deepThink: body.deepThink === true,
                       },
@@ -202,8 +206,8 @@ export default defineConfig(({ mode }) => {
 
                 const out = await runAiChat(messages, {
                   apiKey: key,
-                  base: env.OPENAI_API_BASE,
-                  model: env.OPENAI_MODEL,
+                  base: body._apiBase?.trim() || env.OPENAI_API_BASE,
+                  model: body._model?.trim() || env.OPENAI_MODEL,
                   quotes,
                 });
                 if ("error" in out) {
@@ -240,25 +244,28 @@ export default defineConfig(({ mode }) => {
             }
 
             if (url === "/api/review" && req.method === "POST") {
-              const key = env.OPENAI_API_KEY;
-              if (!key) {
-                res.statusCode = 503;
-                res.setHeader("Content-Type", "application/json");
-                res.end(
-                  JSON.stringify({
-                    error: "未配置 OPENAI_API_KEY（可在 .env.local 中设置）",
-                    disclaimer:
-                      "以上内容由大模型根据涨跌数据推测生成，不构成投资建议。市场有风险，决策请独立判断。",
-                  }),
-                );
-                return;
-              }
               try {
                 const raw = await readBody(req);
                 const body = JSON.parse(raw) as {
                   quotes?: QuoteSnapshot[];
                   marketIndices?: unknown[];
+                  _apiKey?: string;
+                  _apiBase?: string;
+                  _model?: string;
                 };
+                const key = body._apiKey?.trim() || env.OPENAI_API_KEY;
+                if (!key) {
+                  res.statusCode = 503;
+                  res.setHeader("Content-Type", "application/json");
+                  res.end(
+                    JSON.stringify({
+                      error: AI_CONFIG_REQUIRED_MESSAGE,
+                      disclaimer:
+                        "以上内容由大模型根据涨跌数据推测生成，不构成投资建议。市场有风险，决策请独立判断。",
+                    }),
+                  );
+                  return;
+                }
                 const quotes = Array.isArray(body.quotes) ? body.quotes : [];
                 const marketIndices = Array.isArray(body.marketIndices)
                   ? (body.marketIndices as import("./api/lib/marketCore.ts").MarketIndexSnapshot[])
@@ -282,8 +289,8 @@ export default defineConfig(({ mode }) => {
                   marketIndices,
                   {
                   apiKey: key,
-                  base: env.OPENAI_API_BASE,
-                  model: env.OPENAI_MODEL,
+                  base: body._apiBase?.trim() || env.OPENAI_API_BASE,
+                  model: body._model?.trim() || env.OPENAI_MODEL,
                   },
                 );
                 if ("error" in out) {
@@ -320,47 +327,54 @@ export default defineConfig(({ mode }) => {
             }
 
             if (url === "/api/marketAnalysis" && req.method === "POST") {
-              const key = env.OPENAI_API_KEY;
-              if (!key) {
-                res.statusCode = 503;
-                res.setHeader("Content-Type", "application/json");
-                res.end(
-                  JSON.stringify({
-                    error: "未配置 OPENAI_API_KEY（可在 .env.local 中设置）",
-                    disclaimer:
-                      "以上内容由大模型根据涨跌数据推测生成，不构成投资建议。市场有风险，决策请独立判断。",
-                  }),
-                );
-                return;
-              }
               try {
                 const raw = await readBody(req);
                 const body = JSON.parse(raw) as {
-                  marketIndices?: unknown[];
+                  _apiKey?: string;
+                  _apiBase?: string;
+                  _model?: string;
                 };
-                const marketIndices = Array.isArray(body.marketIndices)
-                  ? (body.marketIndices as import("./api/lib/marketCore.ts").MarketIndexSnapshot[])
-                  : undefined;
-                if (!marketIndices || marketIndices.length === 0) {
-                  res.statusCode = 400;
+                const key = body._apiKey?.trim() || env.OPENAI_API_KEY;
+                if (!key) {
+                  res.statusCode = 503;
                   res.setHeader("Content-Type", "application/json");
                   res.end(
                     JSON.stringify({
-                      error: "marketIndices 不能为空",
+                      error: AI_CONFIG_REQUIRED_MESSAGE,
                       disclaimer:
                         "以上内容由大模型根据涨跌数据推测生成，不构成投资建议。市场有风险，决策请独立判断。",
                     }),
                   );
                   return;
                 }
+
+                // 服务端自己拉取大盘数据，不再依赖前端传入
+                const { resolveMarketIndices: resolveIdx } =
+                  await import("./api/lib/marketCore.ts");
+                const { indices, warning } = await resolveIdx();
+
+                if (indices.length === 0) {
+                  res.statusCode = 502;
+                  res.setHeader("Content-Type", "application/json");
+                  res.end(
+                    JSON.stringify({
+                      error: "大盘指数数据源暂时不可用（东方财富接口连接失败），请稍后重试。",
+                      disclaimer:
+                        "以上内容由大模型根据涨跌数据推测生成，不构成投资建议。市场有风险，决策请独立判断。",
+                    }),
+                  );
+                  return;
+                }
+
                 const { runAiMarketAnalysis, REVIEW_DISCLAIMER } =
                   await import("./api/lib/reviewCore.ts");
                 const out = await runAiMarketAnalysis(
-                  marketIndices,
+                  indices,
+                  warning,
                   {
                   apiKey: key,
-                  base: env.OPENAI_API_BASE,
-                  model: env.OPENAI_MODEL,
+                  base: body._apiBase?.trim() || env.OPENAI_API_BASE,
+                  model: body._model?.trim() || env.OPENAI_MODEL,
                   },
                 );
                 if ("error" in out) {
@@ -392,6 +406,51 @@ export default defineConfig(({ mode }) => {
                       "以上内容由大模型根据涨跌数据推测生成，不构成投资建议。市场有风险，决策请独立判断。",
                   }),
                 );
+              }
+              return;
+            }
+
+            if (url === "/api/config-test" && req.method === "POST") {
+              try {
+                const raw = await readBody(req);
+                const body = JSON.parse(raw) as {
+                  apiKey?: string;
+                  apiBase?: string;
+                  model?: string;
+                };
+                const apiKey = body.apiKey?.trim();
+                if (!apiKey) {
+                  res.statusCode = 400;
+                  res.setHeader("Content-Type", "application/json");
+                  res.end(JSON.stringify({ ok: false, error: "API Key 不能为空" }));
+                  return;
+                }
+                const base = (body.apiBase?.trim() || "https://api.openai.com/v1").replace(/\/$/, "");
+                const model = body.model?.trim() || "gpt-4o-mini";
+                const openaiRes = await fetch(`${base}/chat/completions`, {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${apiKey}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    model,
+                    max_tokens: 16,
+                    messages: [{ role: "user", content: "hi" }],
+                  }),
+                });
+                res.setHeader("Content-Type", "application/json");
+                if (!openaiRes.ok) {
+                  const t = await openaiRes.text();
+                  res.end(JSON.stringify({ ok: false, error: `模型请求失败: ${openaiRes.status} ${t.slice(0, 300)}` }));
+                } else {
+                  res.end(JSON.stringify({ ok: true }));
+                }
+              } catch (e) {
+                const msg = e instanceof Error ? e.message : String(e);
+                res.statusCode = 500;
+                res.setHeader("Content-Type", "application/json");
+                res.end(JSON.stringify({ ok: false, error: `连接失败: ${msg}` }));
               }
               return;
             }
