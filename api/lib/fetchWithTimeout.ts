@@ -12,12 +12,15 @@ export class UpstreamTimeoutError extends Error {
       return e.message
     }
     if (e instanceof Error) {
-      const cause =
-        e.cause instanceof Error
-          ? e.cause.message
-          : typeof e.cause === "string"
-            ? e.cause
-            : ""
+      // 不直接访问 e.cause（Vercel @vercel/node builder 的 TS 配置可能不认 ES2022+），
+      // 改用 Record 索引方式规避 lib 缺失问题。
+      const err = e as Error & Record<string, unknown>
+      const rawCause: unknown = err.cause
+      const cause = rawCause instanceof Error
+        ? rawCause.message
+        : typeof rawCause === "string"
+          ? rawCause
+          : ""
       if (cause && cause !== e.message) {
         return `${label}网络异常: ${e.message} (${cause})`
       }
